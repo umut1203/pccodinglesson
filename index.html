@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="tr"> <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C Temellerini Öğrenin - Sınav Hazırlığı</title> <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+     /* Kod vurgulama ve ipuçları için temel stil */
+     .code-highlight {
+       position: relative;
+       cursor: help;
+       border-bottom: 1px dashed #60a5fa; /* Açık mavi kesikli çizgi */
+       font-weight: 600;
+       color: #93c5fd; /* Koyu kod bloklarında vurgulanan metin için daha açık mavi */
+     }
+     #tooltip {
+       position: absolute;
+       background-color: #374151; /* Biraz daha açık koyu gri */
+       color: white;
+       padding: 8px 12px;
+       border-radius: 6px;
+       font-size: 0.875rem;
+       visibility: hidden;
+       opacity: 0;
+       transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out;
+       z-index: 100; /* İpucunun diğer öğelerin üzerinde olmasını sağla */
+       white-space: normal; /* İpucu metninin kaydırılmasına izin ver */
+       max-width: 250px; /* İpucu genişliğini sınırla */
+       box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+     }
+     #tooltip.visible {
+       visibility: visible;
+       opacity: 1;
+     }
+     /* İçeriğin görünüm alanı yüksekliğine sığmasını ve ortalanmasını sağla */
+     html, body {
+       height: 100%;
+       margin: 0;
+       font-family: 'Inter', sans-serif; /* Inter yazı tipini kullan */
+       display: flex;
+       justify-content: center;
+       align-items: center;
+       background-color: #f3f4f6; /* Açık gri arka plan */
+       overflow: hidden; /* Gövde kaydırmasını engelle */
+     }
+     #app-container {
+         width: 90%;
+         max-width: 800px; /* İçerik için maksimum genişlik */
+         height: 90%; /* Artırılmış yükseklik */
+         max-height: 750px; /* Maksimum yükseklik */
+         background-color: white;
+         border-radius: 12px;
+         box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+         display: flex;
+         flex-direction: column;
+         overflow: hidden; /* Kapsayıcı kaydırmasını engelle */
+     }
+     #header {
+         padding: 1rem 2rem;
+         border-bottom: 1px solid #e5e7eb;
+         display: flex;
+         justify-content: space-between;
+         align-items: center;
+         background-color: #f9fafb;
+     }
+     #content-area {
+       flex-grow: 1; /* Kalan alanı kapla */
+       padding: 1.5rem 2rem; /* Ayarlanmış dolgu */
+       overflow-y: auto; /* İçerik taşarsa dahili kaydırmaya izin ver */
+         /* Özel kaydırma çubuğu stili */
+       scrollbar-width: thin;
+       scrollbar-color: #9ca3af #e5e7eb; /* başparmak izi */
+     }
+      /* Webkit Kaydırma Çubuğu */
+     #content-area::-webkit-scrollbar { width: 8px; }
+     #content-area::-webkit-scrollbar-track { background: #e5e7eb; border-radius: 4px; }
+     #content-area::-webkit-scrollbar-thumb { background-color: #9ca3af; border-radius: 4px; border: 2px solid #e5e7eb; }
+     #navigation {
+       border-top: 1px solid #e5e7eb; /* Açık gri kenarlık */
+       padding: 1rem 2rem;
+       display: flex;
+       justify-content: flex-end; /* Düğmeleri sağa hizala */
+       align-items: center;
+       background-color: #f9fafb; /* Hafif kırık beyaz */
+       gap: 0.75rem; /* Gezinme düğmeleri arasındaki boşluk */
+     }
+     /* Ders listesi gösterildiğinde gezinmeyi gizle */
+     #app-container.show-list #navigation {
+         display: none;
+     }
+     /* Geri düğmesini yalnızca bir ders etkinken göster */
+      #app-container.show-list #back-to-list-button {
+          display: none;
+      }
+      #app-container:not(.show-list) #back-to-list-button {
+          display: inline-flex; /* Düğmeyi göster */
+      }
+        /* Başlıktaki geri düğmesini konumlandır */
+      #header #back-to-list-button {
+          margin-right: auto; /* Diğer başlık öğelerini sağa it */
+      }
+
+
+     /* Kod görüntüleme bloğu */
+     pre {
+       background-color: #1f2937; /* Kod için koyu arka plan */
+       color: #d1d5db; /* Açık gri metin */
+       padding: 1rem 1.5rem; /* Ayarlanmış dolgu */
+       border-radius: 8px;
+       overflow-x: auto; /* Uzun kod satırları için yatay kaydırmaya izin ver */
+       font-family: 'Menlo', 'Consolas', 'Courier New', Courier, monospace; /* Monospace yazı tipleri */
+       font-size: 0.9rem;
+       line-height: 1.6;
+     }
+     code {
+         font-family: inherit;
+     }
+     /* Geliştirilmiş Görev Giriş Alanı */
+     .task-input {
+       width: 100%;
+       min-height: 150px; /* Minimum yükseklik */
+       height: 200px; /* Varsayılan yükseklik */
+       margin-top: 1rem;
+       margin-bottom: 1rem; /* Aşağıya kenar boşluğu eklendi */
+       padding: 1rem;
+       border: 1px solid #4b5563; /* Daha koyu kenarlık */
+       border-radius: 8px;
+       font-family: 'Menlo', 'Consolas', 'Courier New', Courier, monospace; /* Monospace yazı tipleri */
+       font-size: 0.9rem;
+       line-height: 1.6;
+       resize: vertical; /* Dikey yeniden boyutlandırmaya izin ver */
+       background-color: #1f2937; /* Koyu arka plan */
+       color: #d1d5db; /* Açık metin */
+       outline: none; /* Varsayılan dış çizgiyi kaldır */
+       box-shadow: inset 0 1px 3px rgba(0,0,0,0.2); /* İç gölge */
+     }
+     .task-input:focus {
+         border-color: #3b82f6; /* Odaklanıldığında mavi kenarlık */
+         box-shadow: inset 0 1px 3px rgba(0,0,0,0.2), 0 0 0 2px rgba(59, 130, 246, 0.3); /* Odak halkası */
+     }
+     /* Çıktı Alanı */
+     #output-area {
+       margin-top: 1rem;
+       padding: 1rem 1.5rem;
+       border-radius: 8px;
+       background-color: #f3f4f6; /* Açık gri arka plan */
+       border: 1px solid #e5e7eb;
+       min-height: 80px; /* Minimum yükseklik */
+       font-family: 'Menlo', 'Consolas', 'Courier New', Courier, monospace;
+       font-size: 0.875rem;
+       color: #374151; /* Koyu gri metin */
+       white-space: pre-wrap; /* Boşlukları koru ve satırları kaydır */
+       overflow-y: auto; /* Çıktı uzunsa kaydır */
+       max-height: 150px; /* Maksimum yüksekliği sınırla */
+     }
+     #output-area.running { color: #6b7280; }
+     #output-area.error { background-color: #fee2e2; border-color: #fca5a5; color: #b91c1c; }
+     #output-area.success { background-color: #dcfce7; border-color: #86efac; color: #166534; }
+
+     .button {
+       display: inline-flex;
+       align-items: center;
+       justify-content: center; /* Metni ortala */
+       padding: 0.6rem 1.2rem;
+       border-radius: 6px;
+       font-weight: 500;
+       cursor: pointer;
+       transition: background-color 0.2s ease, box-shadow 0.2s ease;
+       border: none;
+       box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+       text-align: center;
+     }
+      .button:hover { box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+     .button-primary { background-color: #3b82f6; color: white; }
+     .button-primary:hover { background-color: #2563eb; }
+     .button-secondary { background-color: #e5e7eb; color: #374151; }
+     .button-secondary:hover { background-color: #d1d5db; }
+     .button-success { background-color: #22c55e; color: white; }
+     .button-success:hover { background-color: #16a34a; }
+     .button:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; }
+
+     /* Ders Listesi Stili */
+      #lesson-list {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* Duyarlı ızgara */
+          gap: 1rem;
+          padding: 1rem 0; /* Izgara etrafında dolgu */
+      }
+      .lesson-item button {
+          width: 100%; /* Düğmelerin ızgara hücresini doldurmasını sağla */
+          padding: 1rem; /* Liste öğeleri için daha büyük dolgu */
+          text-align: left; /* Metni sola hizala */
+          background-color: #fff;
+          border: 1px solid #e5e7eb;
+          font-weight: 600;
+          color: #374151;
+          white-space: normal; /* Metin kaydırmaya izin ver */
+          line-height: 1.4;
+          min-height: 60px; /* Tutarlı yükseklik sağla */
+          display: flex; /* Gerekirse öğeleri dikey olarak hizala */
+          align-items: center;
+      }
+        .lesson-item button:hover {
+          background-color: #f9fafb;
+          border-color: #d1d5db;
+        }
+
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="app-container" class="show-list">
+        <div id="header">
+             <button id="back-to-list-button" class="button button-secondary" style="display: none;">&lt; Dersler</button> <h2 class="text-xl font-bold text-gray-800" id="lesson-title">Bir Ders Seçin</h2> <span class="text-sm font-medium text-gray-600" id="progress-indicator"></span>
+        </div>
+
+        <div id="content-area">
+            <div id="lesson-list">
+                </div>
+            <div id="lesson-stage" style="display: none;">
+                </div>
+        </div>
+
+        <div id="navigation">
+            <button id="prev-button" class="button button-secondary" disabled>Önceki Aşama</button> <button id="next-button" class="button button-primary">Sonraki Aşama</button> </div>
+    </div>
+
+    <div id="tooltip"></div>
+
+    <script>
+        // --- TÜM Dersler için Veri Yapısı (PDF Sorularına Göre) ---
+        const lessons = [
+             // === BPII_1'den ===
+             { // 1. Temel Çıktı
+                 title: "1. Adınızı Yazdırma", // Türkçeleştirildi
+                 show: { explanation: "Metin görüntülemek için `printf` kullanın. `\\n` yeni bir satır oluşturur.", code: `// <span class="code-highlight" data-tooltip="Standart Giriş/Çıkış kütüphanesi başlık dosyasını dahil etmek için önişlemci direktifi.">#include</span> <span class="code-highlight" data-tooltip="printf gibi standart giriş/çıkış fonksiyonlarını içeren başlık dosyası.">&lt;stdio.h&gt;</span>\n\n// <span class="code-highlight" data-tooltip="Programın çalışmaya başladığı ana fonksiyonun tanımı. Bir tamsayı döndürür.">int main() {</span>\n   <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: 'Adınız Buraya\\n' dizesini konsola yazdırır (stdio.h).">printf</span>(<span class="code-highlight" data-tooltip="Dize sabiti: Tam olarak yazdırılacak çift tırnak içindeki metin.">"Adınız Buraya\\n"</span>)<span class="code-highlight" data-tooltip="Noktalı virgül: Bir C ifadesinin sonunu işaretler.">;</span> \n\n   <span class="code-highlight" data-tooltip="Return ifadesi: main fonksiyonundan çıkar ve başarılı çalışmayı gösterir (durum kodu 0).">return 0;</span>\n// <span class="code-highlight" data-tooltip="Kapanış parantezi: main fonksiyonunun kod bloğunun sonunu işaretler.">}</span>`, notes: "`printf` için `stdio.h` gereklidir. `main` başlangıç noktasıdır." }, // Türkçeleştirildi
+                 do: { task: "Tam adınızı konsola yazdırın.", placeholderCode: `#include <stdio.h>\n\nint main() {\n   // printf ifadeniz buraya\n\n   return 0;\n}`, expectedOutput: `Tam Adınız Buraya\n(Gerçek adınızla değiştirin)` } // Türkçeleştirildi
+             },
+             { // 2. Veri Tipleri ve Format Belirleyiciler
+                 title: "2. Veri Tipleri ve Yazdırma (%d, %f, %c)", // Türkçeleştirildi
+                 show: { explanation: "Değişkenler verileri saklar. Farklı türleri yazdırmak için format belirleyicileri (`%d`, `%f`, `%c`) kullanın.", code: `#include &lt;stdio.h&gt;\n\n<span class="code-highlight" data-tooltip="Ana fonksiyonun tanımı.">int main() {</span>\n   <span class="code-highlight" data-tooltip="Tam sayılar için veri tipi (integer).">int</span> <span class="code-highlight" data-tooltip="Değişken adı.">number</span> <span class="code-highlight" data-tooltip="Atama operatörü: Sağdaki değeri soldaki değişkene atar.">=</span> <span class="code-highlight" data-tooltip="Tamsayı sabit değeri.">65</span>;\n\n   <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: 'number' değerini tamsayı (%d) olarak biçimlendirilmiş şekilde yazdırır (stdio.h).">printf</span>(<span class="code-highlight" data-tooltip="Metin ve format belirleyici içeren dize sabiti.">"Tamsayı olarak: %d\\n"</span>, number);\n\n   <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: 'number' değerini (float'a dönüştürülmüş) float (%f) olarak biçimlendirilmiş şekilde yazdırır (stdio.h).">printf</span>(<span class="code-highlight" data-tooltip="Float format belirleyicili dize sabiti.">"Float olarak: %f\\n"</span>, <span class="code-highlight" data-tooltip="Tür Dönüşümü (Casting): Yazdırma için tamsayı 'number'ı geçici olarak float gibi ele alır.">(float)</span>number);\n\n   <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: 'number' değerini karakter (%c) olarak yorumlanmış şekilde yazdırır (stdio.h).">printf</span>(<span class="code-highlight" data-tooltip="Karakter format belirleyicili dize sabiti.">"Karakter olarak: %c\\n"</span>, number);\n\n   return 0;\n}`, notes: "65 değeri ASCII'de 'A'dır. `%f` float bir değer gerektirir (tür dönüşümü `(float)` iyi bir uygulamadır)." }, // Türkçeleştirildi
+                 do: { task: "`int testValue = 97;` tanımlayın. Bunu `%d`, `%f` ve `%c` kullanarak yazdırın.", placeholderCode: `#include <stdio.h>\n\nint main() {\n   int testValue = 97;\n   printf("Tamsayı olarak: %d\\n", testValue);\n   printf("Float olarak: %f\\n", (float)testValue);\n   printf("Karakter olarak: %c\\n", testValue);\n   return 0;\n}`, expectedOutput: `Tamsayı olarak: 97\nFloat olarak: 97.000000\nKarakter olarak: a` } // Türkçeleştirildi
+             },
+             { // 3. İsim Deseni Yazdırma (BPII_1 S6 - Basitleştirilmiş)
+                 title: "3. Döngülerle Desen Yazdırma", // Türkçeleştirildi
+                 show: { explanation: "Desenleri yazdırmak için iç içe `for` döngüleri kullanın. Dış döngü satırları, iç döngü sütunları kontrol eder.", code: `#include &lt;stdio.h&gt;\n\n<span class="code-highlight" data-tooltip="Ana fonksiyonun tanımı.">int main() {</span>\n   <span class="code-highlight" data-tooltip="Döngü sayaçları için tamsayı değişkenleri tanımla.">int</span> i, j;\n   int height <span class="code-highlight" data-tooltip="Atama operatörü.">=</span> 5;\n   int width <span class="code-highlight" data-tooltip="Atama operatörü.">=</span> 10;\n\n   // Bir dikdörtgen yazdır\n   <span class="code-highlight" data-tooltip="Dış döngü: i=0 ile başlar; i < height olduğu sürece devam eder; her iterasyondan sonra i'yi artırır.">for (i = 0; i < height; i++) {</span>\n     <span class="code-highlight" data-tooltip="İç döngü: j=0 ile başlar; j < width olduğu sürece devam eder; her iterasyondan sonra j'yi artırır.">for (j = 0; j < width; j++) {</span>\n         <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Yıldız karakterini yazdırır (stdio.h).">printf</span>(<span class="code-highlight" data-tooltip="Yıldız karakterini yazdırır.">"*"</span>); // Bu sütun için karakter yazdır\n     }\n     <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Yeni satır karakteri yazdırır (stdio.h).">printf</span>(<span class="code-highlight" data-tooltip="Sonraki satıra geçmek için yeni satır karakteri yazdırır.">"\\n"</span>);\n   }\n   return 0;\n}`, notes: "İç içe döngüler 2D desenler için gereklidir." }, // Türkçeleştirildi
+                 do: { task: "İç içe `for` döngüleri kullanarak 4x6 boyutunda '#' karakterlerinden oluşan bir dikdörtgen yazdıran bir program yazın.", placeholderCode: `#include <stdio.h>\n\nint main() {\n   int i, j;\n   int rows = 4;\n   int cols = 6;\n\n   // İç içe döngüleri buraya ekleyin\n   for (i = 0; i < rows; i++) {\n     for (j = 0; j < cols; j++) {\n         printf("#");\n     }\n     printf("\\n");\n   }\n   return 0;\n}`, expectedOutput: `######\n######\n######\n######\n` } // Türkçeleştirildi
+             },
+             { // 4. İsmi Çapraz Yazdırma (BPII_1 S8 - Basitleştirilmiş)
+                 title: "4. Döngülerle Çapraz Yazdırma", // Türkçeleştirildi
+                 show: { explanation: "Karakterleri yazdırmak için bir döngü kullanın. Döngü içinde, çapraz bir etki oluşturmak için karakterden önce boşluklar yazdırın. Boşluk sayısı her iterasyonda artar.", code: `#include &lt;stdio.h&gt;\n\n<span class="code-highlight" data-tooltip="Ana fonksiyonun tanımı.">int main() {</span>\n   int i, j;\n   <span class="code-highlight" data-tooltip="'NAME' ile başlatılmış bir karakter dizisi (string) tanımla. Derleyici otomatik olarak bir null sonlandırıcı '\\0' ekler.">char name[] = "NAME";</span>\n\n   <span class="code-highlight" data-tooltip="Dış döngü: 'i' indeksindeki karakter null sonlandırıcı ('\\0') olmadığı sürece devam eder.">for (i = 0; name[i] != '\\0'; i++) {</span>\n     // Karakterden önce boşlukları yazdır\n     <span class="code-highlight" data-tooltip="İç döngü: 'i' kadar boşluk yazdırır. i=0 için 0 boşluk; i=1 için 1 boşluk vb.">for (j = 0; j < i; j++) {</span>\n         <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Tek bir boşluk karakteri yazdırır (stdio.h).">printf</span>(<span class="code-highlight" data-tooltip="Tek bir boşluk karakteri yazdırır.">" "</span>);\n     }\n     // Karakteri ve yeni satırı yazdır\n     <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: 'name' dizisinden 'i' indeksindeki karakteri ('%c') yazdırır (stdio.h).">printf</span>(<span class="code-highlight" data-tooltip="'name' dizisinden geçerli 'i' indeksindeki karakteri ('%c') yazdırır.">"%c\\n"</span>, name[i]);\n   }\n   return 0;\n}`, notes: "Bu, bir karakter dizisi (string) kullanır ve içinde döngü yapar. `name[i] != '\\0'` dizenin sonunu kontrol eder." }, // Türkçeleştirildi
+                 do: { task: "Her satırda bir harf olacak şekilde \"CODE\" kelimesinin harflerini çapraz olarak yazdıran bir program yazın.", placeholderCode: `#include <stdio.h>\n\nint main() {\n   int i, j;\n   char word[] = "CODE";\n\n   // Kelimeyi döngüye al\n   for (i = 0; word[i] != '\\0'; i++) {\n     // Boşlukları yazdır (j < i)\n     for (j = 0; j < i; j++) {\n         printf(" ");\n     }\n     // Karakteri yazdır word[i]\n     printf("%c\\n", word[i]);\n   }\n   return 0;\n}`, expectedOutput: `C\n O\n  D\n   E\n` } // Türkçeleştirildi
+             },
+             // === BPII_2'den ===
+             { // 5. Karakter Analizi
+                 title: "5. Karakter Analizi (if/else, ctype.h)", // Türkçeleştirildi
+                 show: { explanation: "Karşılaştırmalar veya `ctype.h` fonksiyonları kullanarak karakter türlerini (büyük harf, küçük harf, rakam) kontrol edin.", code: `#include &lt;stdio.h&gt;\n<span class="code-highlight" data-tooltip="isupper(), islower(), isdigit() gibi karakter işleme fonksiyonları için ctype.h'yi dahil et.">#include &lt;ctype.h&gt;</span>\n\n<span class="code-highlight" data-tooltip="Ana fonksiyonun tanımı.">int main() {</span>\n   <span class="code-highlight" data-tooltip="'ch' adında bir karakter değişkeni tanımla ve '7' ile başlat.">char ch = '7';</span>\n   <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: 'ch' karakterini yazdırır (stdio.h).">printf</span>("Karakter: %c\\n", ch);\n\n   <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: 'ch'nin büyük harf olup olmadığını kontrol eder (ctype.h). Eğer öyleyse sıfır olmayan (true), değilse 0 (false) döndürür.">if (isupper(ch))</span> <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Koşul doğruysa çıktıyı yazdırır (stdio.h).">printf</span>("Tür: Büyük Harf\\n");\n   <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: 'ch'nin küçük harf olup olmadığını kontrol eder (ctype.h).">else if (islower(ch))</span> <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Çıktıyı yazdırır (stdio.h).">printf</span>("Tür: Küçük Harf\\n");\n   <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: 'ch'nin bir rakam ('0' ile '9' arası) olup olmadığını kontrol eder (ctype.h).">else if (isdigit(ch))</span> <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Çıktıyı yazdırır (stdio.h).">printf</span>("Tür: Rakam\\n");\n   <span class="code-highlight" data-tooltip="Yukarıdaki koşullardan hiçbiri doğru değilse, bu blok çalışır.">else</span> <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Çıktıyı yazdırır (stdio.h).">printf</span>("Tür: Diğer\\n");\n\n   return 0;\n}`, notes: "`ctype.h` fonksiyonları (`isupper`, `islower`, `isdigit`, `ispunct`) kontrolleri basitleştirir." }, // Türkçeleştirildi
+                 do: { task: "`char input = '*';` tanımlayın. Büyük harf, küçük harf, rakam veya diğer olup olmadığını belirleyin ve yazdırın.", placeholderCode: `#include <stdio.h>\n#include <ctype.h>\n\nint main() {\n   char input = '*';\n   printf("Girdi: %c\\n", input);\n   // ctype.h kullanarak if/else if/else mantığını ekleyin\n   if(isupper(input)) { printf("Tür: Büyük Harf\\n"); } \n   else if(islower(input)) { printf("Tür: Küçük Harf\\n"); } \n   else if(isdigit(input)) { printf("Tür: Rakam\\n"); } \n   else { printf("Tür: Diğer\\n"); }\n   return 0;\n}`, expectedOutput: `Girdi: *\nTür: Diğer\n` } // Türkçeleştirildi
+             },
+             { // 6. Basit Yatay Hareket (BPII_2 S2 - Basitleştirilmiş)
+                 title: "6. Boşluklarla Hareketi Simüle Etme", // Türkçeleştirildi
+                 show: { explanation: "Bir döngü içinde metinden önce artan sayıda boşluk yazdırarak yatay hareketi simüle edin.", code: `#include &lt;stdio.h&gt;\n\n<span class="code-highlight" data-tooltip="Ana fonksiyonun tanımı.">int main() {</span>\n    int i, j;\n    int max_spaces <span class="code-highlight" data-tooltip="Atama operatörü.">=</span> 5;\n\n    <span class="code-highlight" data-tooltip="Dış döngü yazdırılacak satır sayısını kontrol eder.">for (i = 0; i <= max_spaces; i++) {</span>\n        // Baştaki boşlukları yazdır\n        <span class="code-highlight" data-tooltip="İç döngü geçerli 'i' satırı için 'i' kadar boşluk yazdırır.">for (j = 0; j < i; j++) {</span>\n            <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Tek bir boşluk yazdırır (stdio.h).">printf</span>(" ");\n        }\n        // Metni yazdır\n        <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: 'Merhaba' dizesini ve ardından yeni satırı yazdırır (stdio.h).">printf</span>(<span class="code-highlight" data-tooltip="'Merhaba' dizesini ve ardından yeni satırı yazdırır.">"Merhaba\\n"</span>);\n    }\n    return 0;\n}`, notes: "Her satır metni sağa doğru daha fazla yazdırır." }, // Türkçeleştirildi
+                 do: { task: "\"Taşı\" kelimesini 4 kez, her seferinde bir öncekinden bir boşluk daha fazla girintili olacak şekilde yazdıran bir program yazın.", placeholderCode: `#include <stdio.h>\n\nint main() {\n    int i, j;\n    int lines = 4;\n\n    // 'lines' kez döngü yap (i, 0'dan lines-1'e kadar)\n    for (i = 0; i < lines; i++) {\n        // 'i' kadar boşluk yazdır\n        for (j = 0; j < i; j++) {\n            printf(" ");\n        }\n        // "Taşı" yazdır\n        printf("Taşı\\n");\n    }\n    return 0;\n}`, expectedOutput: `Taşı\n Taşı\n  Taşı\n   Taşı\n` } // Türkçeleştirildi
+             },
+             { // 7. Belirli Aralıktaki Rastgele Sayılar ve Sayma
+                 title: "7. Rastgele Sayılar ve Sayma", // Türkçeleştirildi
+                 show: { explanation: "`rand()`, `%` ve `+` kullanarak belirli bir aralıkta rastgele sayılar üretin. Kaç tanesinin alt aralıklara düştüğünü saymak için `if` ifadeleri kullanın.", code: `#include &lt;stdio.h&gt;\n<span class="code-highlight" data-tooltip="rand(), srand() için stdlib.h'yi dahil et.">#include &lt;stdlib.h&gt;</span>\n<span class="code-highlight" data-tooltip="time() için time.h'yi dahil et.">#include &lt;time.h&gt;</span>\n\n<span class="code-highlight" data-tooltip="Ana fonksiyonun tanımı.">int main() {</span>\n   int i, r, count1 <span class="code-highlight" data-tooltip="Sayacı 0 olarak başlat.">=</span> 0, count2 <span class="code-highlight" data-tooltip="Sayacı 0 olarak başlat.">=</span> 0;\n   int min <span class="code-highlight" data-tooltip="Atama.">=</span> 100, max <span class="code-highlight" data-tooltip="Atama.">=</span> 200, mid <span class="code-highlight" data-tooltip="Atama.">=</span> 150;\n   int range <span class="code-highlight" data-tooltip="İstenen aralığın boyutunu hesapla.">=</span> max - min + 1;\n   <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Her çalıştırmada farklı sonuçlar elde etmek için rastgele sayı üretecini geçerli zamanı (time.h'den time(NULL)) kullanarak tohumlar (stdlib.h).">srand(time(NULL));</span>\n\n   <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Tanıtım metnini yazdırır (stdio.h).">printf</span>("20 sayı üretiliyor (100-200):\\n");\n   for (i = 0; i < 20; i++) {\n     <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Sözde rastgele bir tamsayı üretir (stdlib.h). Hesaplama [min, max] aralığında sayı üretir.">r = (rand() % range) + min;</span>\n     <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Üretilen rastgele sayıyı yazdırır (stdio.h).">printf</span>("%d ", r);\n     // Aralık içindeki sayıları say\n     <span class="code-highlight" data-tooltip="Mantıksal VE (&&): Her iki koşul da doğru olmalıdır. r'nin 100 <= r < 150 olup olmadığını kontrol eder.">if (r >= min && r < mid)</span> <span class="code-highlight" data-tooltip="Artırma operatörü: count1'i 1 artır.">count1++;</span>\n     <span class="code-highlight" data-tooltip="r'nin 150 <= r <= 200 olup olmadığını kontrol eder.">else if (r >= mid && r <= max)</span> <span class="code-highlight" data-tooltip="Artırma operatörü.">count2++;</span>\n   }\n   <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Yeni bir satır yazdırır (stdio.h).">printf</span>("\\nSonuçlar:\\n");\n   <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: İlk aralık için sayımı yazdırır (stdio.h).">printf</span>("Sayı (100-149): %d\\n", count1);\n   <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: İkinci aralık için sayımı yazdırır (stdio.h).">printf</span>("Sayı (150-200): %d\\n", count2);\n   return 0;\n}`, notes: "[min, max] aralığı için formül: `(rand() % (max - min + 1)) + min`. `srand()`'ı unutmayın." }, // Türkçeleştirildi
+                 do: { task: "50 ile 100 arasında 15 rastgele sayı üretin. Kaç tanesinin 75'ten küçük ve kaç tanesinin 75 veya daha büyük olduğunu sayın ve yazdırın.", placeholderCode: `#include <stdio.h>\n#include <stdlib.h>\n#include <time.h>\n\nint main() {\n   int i, r, count_low = 0, count_high = 0;\n   int min_val = 50, max_val = 100, threshold = 75;\n   int range_val = max_val - min_val + 1;\n   srand(time(NULL));\n\n   printf("15 sayı üretiliyor (%d-%d):\\n", min_val, max_val);\n   for (i = 0; i < 15; i++) {\n     r = (rand() % range_val) + min_val;\n     printf("%d ", r);\n     // Sayma mantığını buraya ekleyin\n     if (r < threshold) { count_low++; }\n     else { count_high++; }\n   }\n   printf("\\nSonuçlar:\\n");\n   printf("Sayı (< %d): %d\\n", threshold, count_low);\n   printf("Sayı (>= %d): %d\\n", threshold, count_high);\n   return 0;\n}`, expectedOutput: `15 sayı üretiliyor (50-100):\n(50 ile 100 arasında 15 rastgele sayı)\nSonuçlar:\nSayı (< 75): (sayı)\nSayı (>= 75): (sayı)\n(Sayılar değişecektir)` } // Türkçeleştirildi
+             },
+             { // 8. Faktöriyel ve Faktöriyellerin Toplamı
+                 title: "8. Faktöriyellerin Toplamı (Döngüler)", // Türkçeleştirildi
+                 show: { explanation: "Bir döngü içinde faktöriyelleri hesaplayın ve toplayın. Her adımda faktöriyel hesaplamasının dikkatli bir şekilde ele alınmasını gerektirir.", code: `#include &lt;stdio.h&gt;\n\n<span class="code-highlight" data-tooltip="Ana fonksiyonun tanımı.">int main() {</span>\n   int n <span class="code-highlight" data-tooltip="Faktöriyel hesaplaması için üst sınır.">=</span> 5, i;\n   <span class="code-highlight" data-tooltip="Potansiyel olarak büyük değerleri tutmak için faktöriyel ve toplam için 'long long' kullanın. Çarpma için 1 olarak başlatın.">long long</span> current_factorial <span class="code-highlight" data-tooltip="Atama.">=</span> 1;\n   <span class="code-highlight" data-tooltip="Toplamı 0 olarak başlat.">long long</span> total_sum <span class="code-highlight" data-tooltip="Atama.">=</span> 0;\n\n   <span class="code-highlight" data-tooltip="Geçersiz girişi kontrol et. Faktöriyel negatif sayılar için tanımlı değildir.">if (n < 0) {</span> <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Hata mesajı yazdırır (stdio.h).">printf</span>("Girdi negatif olamaz.\\n"); <span class="code-highlight" data-tooltip="Bir hata oluştuğunu belirtmek için sıfır olmayan değer döndür.">return 1;</span> }\n\n   <span class="code-highlight" data-tooltip="1'den n'ye kadar (n dahil) döngü yap.">for (i = 1; i <= n; i++) {</span>\n     <span class="code-highlight" data-tooltip="Faktöriyeli güncelle: current_factorial = current_factorial * i.">current_factorial *= i;</span>\n     <span class="code-highlight" data-tooltip="Toplamı güncelle: total_sum = total_sum + current_factorial.">total_sum += current_factorial;</span>\n     <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Geçerli faktöriyel değerini yazdırır (stdio.h). %lld, long long int içindir.">printf</span>("%d! = %lld\\n", i, current_factorial);\n   }\n\n   <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Son toplamı yazdırır (stdio.h).">printf</span>("%d!'e kadar faktöriyellerin toplamı = %lld\\n", n, total_sum);\n   return 0;\n}`, notes: "Ana döngü içinde faktöriyeli iteratif olarak hesaplayın. Taşmayı önlemek için toplamlar ve faktöriyeller için `long long` kullanın." }, // Türkçeleştirildi
+                 do: { task: "4!'e kadar faktöriyellerin toplamını hesaplayın (1! + 2! + 3! + 4!). Her faktöriyeli ve son toplamı yazdırın.", placeholderCode: `#include <stdio.h>\n\nint main() {\n   int n_limit = 4, i;\n   long long fact = 1;\n   long long sum = 0;\n\n   for (i = 1; i <= n_limit; i++) {\n     // i için faktöriyeli hesapla\n     fact *= i;\n     // fact'i toplama ekle\n     sum += fact;\n     printf("%d! = %lld\\n", i, fact);\n   }\n   printf("Toplam = %lld\\n", sum);\n   return 0;\n}`, expectedOutput: `1! = 1\n2! = 2\n3! = 6\n4! = 24\nToplam = 33\n` } // Türkçeleştirildi
+             },
+             { // 9. Sinüs Serisi Hesaplama
+                 title: "9. Sinüs Serisi Hesaplama (Döngüler, Fonksiyonlar)", // Türkçeleştirildi
+                 show: { explanation: "Maclaurin serisini kullanarak sin(x)'i yaklaşık olarak hesaplayın: x - x^3/3! + x^5/5! - x^7/7! + ... Üs alma ve faktöriyel için döngüler, fonksiyonlar ve `math.h` kullanın.", code: `#include &lt;stdio.h&gt;\n<span class="code-highlight" data-tooltip="pow() ve sin() fonksiyonları için math.h'yi dahil et.">#include &lt;math.h&gt;</span>\n\n// <span class="code-highlight" data-tooltip="Fonksiyon tanımı: 'num' sayısının faktöriyelini hesaplar. long long döndürür.">long long factorial(int num) {</span>\n    if (num < 0) return -1; // Hata durumu\n    if (num == 0) return 1; // Temel durum: 0! = 1\n    long long fact = 1;\n    <span class="code-highlight" data-tooltip="Faktöriyel çarpımını hesaplamak için döngü.">for (int i = 1; i <= num; i++) fact *= i;</span>\n    <span class="code-highlight" data-tooltip="Hesaplanan faktöriyel değerini döndür.">return fact;</span>\n}\n\n<span class="code-highlight" data-tooltip="Ana fonksiyonun tanımı.">int main() {</span>\n    <span class="code-highlight" data-tooltip="float'tan daha yüksek hassasiyete sahip kayan noktalı sayılar için 'double' veri tipi.">double</span> x_radians <span class="code-highlight" data-tooltip="sin() için açı radyan cinsinden olmalıdır.">=</span> 1.0;\n    int terms <span class="code-highlight" data-tooltip="Seri yaklaşımına dahil edilecek terim sayısı.">=</span> 5;\n    double sin_approx <span class="code-highlight" data-tooltip="Toplamı double için 0.0 olarak başlat.">=</span> 0.0;\n    int i, sign <span class="code-highlight" data-tooltip="İşareti değiştiren değişken (+1, -1).">=</span> 1;\n\n    <span class="code-highlight" data-tooltip="'terms' kez döngü yap (0'dan terms-1'e kadar).">for (i = 0; i < terms; i++) {</span>\n        <span class="code-highlight" data-tooltip="Geçerli terim için üssü hesapla (1, 3, 5, ...)">int power = 2 * i + 1;</span>\n        <span class="code-highlight" data-tooltip="Terim değerini hesapla: sign * (x^power / power!). pow() ve factorial() fonksiyonlarını kullanır.">double term = sign * (<span class="code-highlight" data-tooltip="Fonksiyon çağrısı: x_radians'ın 'power' üssünü hesaplar (math.h).">pow(x_radians, power)</span> / <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: 'power'ın faktöriyelini hesaplar.">factorial(power)</span>);</span>\n        <span class="code-highlight" data-tooltip="Hesaplanan terimi yaklaşım toplamına ekle.">sin_approx += term;</span>\n        <span class="code-highlight" data-tooltip="Sonraki terim için işareti ters çevir (1, -1 olur; -1, 1 olur).">sign *= -1;</span>\n    }\n\n    <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Hesaplanan yaklaşımı yazdırır (stdio.h). %lf double içindir.">printf</span>("sin(%.2f) yaklaşımı (%d terim) = %lf\\n", x_radians, terms, sin_approx);\n    <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Karşılaştırma için standart kütüphane sin() fonksiyonundan sonucu yazdırır (stdio.h).">printf</span>("sin(%.2f) (math.h'den) = %lf\\n", x_radians, <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Standart matematik kütüphanesini kullanarak x_radians'ın sinüsünü hesaplar (math.h).">sin(x_radians)</span>);\n    return 0;\n}`, notes: "`pow()` ve `sin()` için `math.h` gerektirir. Faktöriyel için yardımcı fonksiyon kullanışlıdır. Açılar radyan cinsinden olmalıdır." }, // Türkçeleştirildi
+                 do: { task: "x = 0.5 radyan için sinüs serisinin ilk 4 terimini hesaplayın. `math.h`'den `pow()` ve bir faktöriyel hesaplamasına ihtiyacınız olacak.", placeholderCode: `#include <stdio.h>\n#include <math.h>\n\nlong long factorial(int n) { \n    if (n<0) return -1; if (n==0) return 1; \n    long long f=1; for(int i=1; i<=n; i++) f*=i; return f; \n}\n\nint main() {\n    double x = 0.5;\n    int num_terms = 4;\n    double result = 0.0;\n    int sign_val = 1;\n    int k;\n\n    for (k = 0; k < num_terms; k++) {\n        int p = 2 * k + 1;\n        double current_term = sign_val * (pow(x, p) / factorial(p));\n        result += current_term;\n        sign_val *= -1;\n        printf("Terim %d (üs %d): %lf\\n", k+1, p, current_term);\n    }\n    printf("Yaklaşım = %lf\\n", result);\n    return 0;\n}`, expectedOutput: `Terim 1 (üs 1): 0.500000\nTerim 2 (üs 3): -0.020833\nTerim 3 (üs 5): 0.000260\nTerim 4 (üs 7): -0.000002\nYaklaşım = 0.479425\n(Değerler float hassasiyeti nedeniyle biraz farklılık gösterebilir)` } // Türkçeleştirildi
+             },
+             { // 10. Üçgen Çizme
+                 title: "10. Üçgen Çizme (İç İçe Döngüler)", // Türkçeleştirildi
+                 show: { explanation: "Şekilleri çizmek için iç içe döngüler kullanın. Dış döngü satırları kontrol eder. İç döngüler baştaki boşlukları ve şekil için karakterleri kontrol eder.", code: `#include &lt;stdio.h&gt;\n\n<span class="code-highlight" data-tooltip="Ana fonksiyonun tanımı.">int main() {</span>\n    int height <span class="code-highlight" data-tooltip="Üçgenin istenen yüksekliği (satır sayısı).">=</span> 5;\n    int i, j, k;\n\n    <span class="code-highlight" data-tooltip="Dış döngü her satırda yinelenir, 0'dan height-1'e kadar.">for (i = 0; i < height; i++) {</span>\n        // Baştaki boşlukları yazdır\n        <span class="code-highlight" data-tooltip="İç döngü boşlukları yazdırır. Boşluk sayısı 'i' arttıkça azalır.">for (j = 0; j < height - 1 - i; j++) {</span>\n            <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Bir boşluk yazdırır (stdio.h).">printf</span>(" ");\n        }\n        // Üçgen tabanı için karakterleri yazdır\n        <span class="code-highlight" data-tooltip="İç döngü karakterleri yazdırır. Karakter sayısı her satırda 2 artar (1, 3, 5...).">for (k = 0; k < (2 * i + 1); k++) {</span>\n            <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Bir yıldız yazdırır (stdio.h).">printf</span>("*");\n        }\n        <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Her satırdan sonra yeni satır yazdırır (stdio.h).">printf</span>("\\n");\n    }\n    return 0;\n}`, notes: "Boşluk sayısı satır başına azalırken, karakter sayısı artar." }, // Türkçeleştirildi
+                 do: { task: "4 satır yüksekliğinde '#' karakterlerinden oluşan ikizkenar bir üçgen çizin.", placeholderCode: `#include <stdio.h>\n\nint main() {\n    int h = 4;\n    int i, spaces, chars;\n\n    for (i = 0; i < h; i++) {\n        // Baştaki boşlukları hesapla ve yazdır\n        spaces = h - 1 - i;\n        for (int s = 0; s < spaces; s++) printf(" ");\n\n        // '#' karakterlerini hesapla ve yazdır\n        chars = 2 * i + 1;\n        for (int c = 0; c < chars; c++) printf("#");\n\n        printf("\\n");\n    }\n    return 0;\n}`, expectedOutput: `   #\n  ###\n #####\n#######\n` } // Türkçeleştirildi
+             },
+            // === BPII_3'ten ===
+            { // 11. Haftanın Günü (Switch)
+                title: "11. Haftanın Günü (switch)", // Türkçeleştirildi
+                show: { explanation: "Bir sayıyı (1-7) karşılık gelen gün adına eşlemek için bir `switch` ifadesi kullanın.", code: `#include &lt;stdio.h&gt;\n\n<span class="code-highlight" data-tooltip="Ana fonksiyonun tanımı.">int main() {</span>\n   int day_num <span class="code-highlight" data-tooltip="Kontrol edilecek değeri tutan değişken.">=</span> 5;\n   <span class="code-highlight" data-tooltip="'day_num' ifadesini değerlendirir ve eşleşen case'e atlar.">switch (day_num) {</span>\n     <span class="code-highlight" data-tooltip="day_num 1 ise yürütülecek kod için etiket.">case 1:</span> <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: 'Pazartesi' yazdırır (stdio.h).">printf</span>("Pazartesi\\n"); <span class="code-highlight" data-tooltip="Switch ifadesinden hemen çıkar. 'Fall-through'u önlemek için çok önemlidir.">break;</span>\n     <span class="code-highlight" data-tooltip="day_num 2 ise yürütülecek kod için etiket.">case 2:</span> <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: 'Salı' yazdırır (stdio.h).">printf</span>("Salı\\n"); break;\n     case 3: printf("Çarşamba\\n"); break;\n     case 4: printf("Perşembe\\n"); break;\n     case 5: printf("Cuma\\n"); break;\n     case 6: printf("Cumartesi\\n"); break;\n     case 7: printf("Pazar\\n"); break;\n     <span class="code-highlight" data-tooltip="İsteğe bağlı etiket. Başka hiçbir case day_num ile eşleşmezse yürütülür.">default:</span> <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Hata mesajı yazdırır (stdio.h).">printf</span>("Geçersiz gün\\n"); break;\n   }\n   return 0;\n}`, notes: "Her case'den sonra `break`'i unutmayın. `default`, beklenen aralığın dışındaki girdileri işler." }, // Türkçeleştirildi
+                do: { task: "`grade` (1-5) sayısını alan ve karşılık gelen bir açıklama yazdıran (ör. 1: Başarısız, 2: Zayıf, 3: Orta, 4: İyi, 5: Mükemmel) bir `switch` programı yazın. Geçersiz notları işleyin.", placeholderCode: `#include <stdio.h>\n\nint main() {\n   int grade = 4;\n\n   switch (grade) {\n     case 1: printf("Başarısız\\n"); break;\n     case 2: printf("Zayıf\\n"); break;\n     case 3: printf("Orta\\n"); break;\n     case 4: printf("İyi\\n"); break;\n     case 5: printf("Mükemmel\\n"); break;\n     default: printf("Geçersiz not\\n"); break;\n   }\n   return 0;\n}`, expectedOutput: `İyi\n(Çıktı nota göre değişir)` } // Türkçeleştirildi
+            },
+            { // 12. Sayı Analizi (İşaret, Parite, Palindrom)
+                title: "12. Sayı Analizi (İşaret, Parite, Palindrom)", // Türkçeleştirildi
+                show: { explanation: "İşareti, çift/tek durumunu ve bir sayının palindrom olup olmadığını kontrol etmek için `if/else` ve aritmetik (`%`, `/`) kullanın.", code: `#include &lt;stdio.h&gt;\n\n<span class="code-highlight" data-tooltip="Ana fonksiyonun tanımı.">int main() {</span>\n   int num <span class="code-highlight" data-tooltip="Analiz edilecek sayı.">=</span> 121, original, reversed <span class="code-highlight" data-tooltip="Ters çevrilmiş sayıyı 0 olarak başlat.">=</span> 0, rem;\n   original <span class="code-highlight" data-tooltip="Ters çevirme için 'num'ı değiştirmeden önce orijinal değeri sakla.">=</span> num;\n   <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Analiz edilen sayıyı yazdırır (stdio.h).">printf</span>("Sayı: %d\\n", num);\n   <span class="code-highlight" data-tooltip="Pozitif olup olmadığını kontrol et.">if (num > 0)</span> <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: İşareti yazdırır (stdio.h).">printf</span>("- Pozitif\\n"); <span class="code-highlight" data-tooltip="Negatif olup olmadığını kontrol et.">else if (num < 0)</span> <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: İşareti yazdırır (stdio.h).">printf</span>("- Negatif\\n"); <span class="code-highlight" data-tooltip="Pozitif veya negatif değilse, sıfır olmalı.">else</span> <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: İşareti yazdırır (stdio.h).">printf</span>("- Sıfır\\n");\n   <span class="code-highlight" data-tooltip="Modulo 2 operatörü. Sonuç çift için 0, tek için 1 (veya -1)'dir. '==' eşitliği kontrol eder.">if (num % 2 == 0)</span> <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Pariteyi yazdırır (stdio.h).">printf</span>("- Çift\\n"); else <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Pariteyi yazdırır (stdio.h).">printf</span>("- Tek\\n");\n   <span class="code-highlight" data-tooltip="Palindrom kontrolü yalnızca negatif olmayan sayılar için anlamlıdır.">if(num >= 0) {</span>\n     int temp <span class="code-highlight" data-tooltip="Daha sonra ihtiyaç duyulan 'num'ı değiştirmemek için geçici bir değişken kullan.">=</span> num;\n     <span class="code-highlight" data-tooltip="Döngü temp sıfır olmadığı sürece devam eder.">while(temp != 0) {</span> <span class="code-highlight" data-tooltip="Son basamağı al.">rem = temp % 10;</span> <span class="code-highlight" data-tooltip="Ters çevrilmiş sayıyı oluştur.">reversed = reversed * 10 + rem;</span> <span class="code-highlight" data-tooltip="Son basamağı temp'ten kaldır.">temp /= 10;</span> }\n     <span class="code-highlight" data-tooltip="Orijinal sayıyı tamamen ters çevrilmiş sayıyla karşılaştır.">if (original == reversed)</span> <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Palindrom sonucunu yazdırır (stdio.h).">printf</span>("- Palindrom: Evet\\n"); else <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Palindrom sonucunu yazdırır (stdio.h).">printf</span>("- Palindrom: Hayır\\n");\n   } else <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Negatif sayılar için mesaj yazdırır (stdio.h).">printf</span>("- Palindrom: Yok\\n");\n   return 0;\n}`, notes: "Palindrom kontrolü, sayıyı ters çevirmeyi ve orijinaliyle karşılaştırmayı gerektirir." }, // Türkçeleştirildi
+                do: { task: "234 sayısını analiz edin: işaretini, paritesini ve palindrom durumunu kontrol edin.", placeholderCode: `#include <stdio.h>\n\nint main() {\n   int n = 234, orig, rev = 0, r;\n   orig = n;\n   printf("Sayı: %d\\n", n);\n   // İşaret kontrolünü ekle\n   if(n > 0) printf("- Pozitif\\n"); else if (n < 0) printf("- Negatif\\n"); else printf("- Sıfır\\n");\n   // Parite kontrolünü ekle\n   if(n % 2 == 0) printf("- Çift\\n"); else printf("- Tek\\n");\n   // Palindrom kontrolünü ekle\n   if(n>=0){ int t=n; while(t!=0){r=t%10; rev=rev*10+r; t/=10;} if(orig==rev) printf("- Palindrom: Evet\\n"); else printf("- Palindrom: Hayır\\n"); } else { printf("- Palindrom: Yok\\n"); }\n   return 0;\n}`, expectedOutput: `Sayı: 234\n- Pozitif\n- Çift\n- Palindrom: Hayır\n` } // Türkçeleştirildi
+            },
+            { // 13. Basamakları Ayıklama
+                title: "13. Basamakları Ayıklama (Modulo/Bölme)", // Türkçeleştirildi
+                show: { explanation: "Son basamağı almak için modulo (`% 10`) ve son basamağı kaldırmak için tamsayı bölme (`/ 10`) kullanın.", code: `#include &lt;stdio.h&gt;\n\n<span class="code-highlight" data-tooltip="Ana fonksiyonun tanımı.">int main() {</span>\n   int num = 345;\n   <span class="code-highlight" data-tooltip="Modulo 10 kalanı verir (son basamak).">int ones = num % 10;</span>\n   <span class="code-highlight" data-tooltip="10'a tamsayı bölme son basamağı kaldırır. Sonra modulo 10 yeni son basamağı (onlar basamağı) alır.">int tens = (num / 10) % 10;</span>\n   <span class="code-highlight" data-tooltip="100'e tamsayı bölme son iki basamağı kaldırır, yüzler basamağını bırakır.">int hundreds = num / 100;</span>\n   <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Orijinal sayıyı ve ayıklanan basamakları yazdırır (stdio.h).">printf</span>("Sayı: %d -> Y:%d O:%d B:%d\\n", num, hundreds, tens, ones);\n   return 0;\n}`, notes: "Sağdan ardışık basamakları almak için `/ 10` ve `% 10`'u tekrarlayın." }, // Türkçeleştirildi
+                do: { task: "905 sayısının basamaklarını ayıklayın ve yazdırın.", placeholderCode: `#include <stdio.h>\n\nint main() {\n   int val = 905;\n   int o = val % 10;\n   int t = (val / 10) % 10;\n   int h = val / 100;\n   printf("Sayı: %d -> Y:%d O:%d B:%d\\n", val, h, t, o);\n   return 0;\n}`, expectedOutput: `Sayı: 905 -> Y:9 O:0 B:5\n` } // Türkçeleştirildi
+            },
+             // === BPII_4'ten ===
+             { // 14. Fonksiyonlara Giriş
+                 title: "14. Fonksiyonlara Giriş", // Türkçeleştirildi
+                 show: { explanation: "Fonksiyonlar belirli bir görevi gerçekleştirmek için kodu gruplar. Kodu yeniden kullanılabilir ve organize hale getirirler. Bir fonksiyonu bir dönüş türü, ad, parametreler ve bir gövde ile tanımlayın. Fonksiyonu adıyla çağırın.", code: `#include &lt;stdio.h&gt;\n\n// <span class="code-highlight" data-tooltip="Fonksiyon tanımı: 'void' bir değer döndürmediği anlamına gelir. 'greet' addır. 'char name[]' bir karakter dizisi (string) parametresidir.">void greet(char name[]) {</span>\n   <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: 'name' parametresini kullanarak selamlama yazdırır (stdio.h). %s stringler için format belirleyicidir.">printf</span>("Merhaba, %s!\\n", name);\n// }\n\n// <span class="code-highlight" data-tooltip="Fonksiyon tanımı: 'int' bir tamsayı döndürdüğü anlamına gelir. 'add' addır. 'int a' ve 'int b' tamsayı parametreleridir.">int add(int a, int b) {</span>\n   <span class="code-highlight" data-tooltip="'a' ve 'b' parametrelerinin toplamını fonksiyonun çağrıldığı yere geri döndürür.">return a + b;</span>\n// }\n\n<span class="code-highlight" data-tooltip="Ana fonksiyonun tanımı.">int main() {</span>\n   <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: 'greet' fonksiyonunu yürütür, 'Alice' argümanını geçirir.">greet("Alice");</span>\n   <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: 'add' fonksiyonunu 5 ve 3 argümanlarıyla yürütür. Döndürülen değer (8) 'sum' değişkeninde saklanır.">int sum = add(5, 3);</span>\n   <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: 'sum' değerini yazdırır (stdio.h).">printf</span>("Toplam = %d\\n", sum);\n   return 0;\n}`, notes: "`void` fonksiyonun bir değer döndürmediği anlamına gelir. Diğer türler ( `int`, `float` gibi) döndürdüğü anlamına gelir. Parametreler fonksiyona girdilerdir." }, // Türkçeleştirildi
+                 do: { task: "İki tamsayıyı girdi olarak alan ve çarpımlarını döndüren `multiply` adlı bir fonksiyon tanımlayın. Bu fonksiyonu `main`'den 6 ve 7 değerleriyle çağırın ve sonucu yazdırın.", placeholderCode: `#include <stdio.h>\n\n// 'multiply' fonksiyonunu burada tanımlayın\nint multiply(int x, int y) {\n   return x * y;\n}\n\nint main() {\n   int result = multiply(6, 7); // Fonksiyonu çağır\n   printf("Çarpım = %d\\n", result);\n   return 0;\n}\n`, expectedOutput: `Çarpım = 42\n` } // Türkçeleştirildi
+             },
+             { // 15. Dizilere Giriş
+                 title: "15. Dizilere Giriş", // Türkçeleştirildi
+                 show: { explanation: "Diziler aynı veri türündeki birden çok değeri tek bir ad altında saklar. Öğelere bir indeks kullanarak erişin (0'dan başlayarak).", code: `#include &lt;stdio.h&gt;\n\n<span class="code-highlight" data-tooltip="Ana fonksiyonun tanımı.">int main() {</span>\n   // <span class="code-highlight" data-tooltip="5 tamsayı tutabilen 'scores' adlı bir dizi bildirir. Bellek ayrılır.">int scores[5];</span>\n   int i;\n\n   // İndeks kullanarak değer ata\n   <span class="code-highlight" data-tooltip="İlk öğeye (indeks 0) 85 ata.">scores[0] = 85;</span>\n   scores[1] = 92;\n   scores[2] = 78;\n   scores[3] = 88;\n   <span class="code-highlight" data-tooltip="Beşinci öğeye (indeks 4) 90 ata.">scores[4] = 90;</span>\n\n   // Bir döngü kullanarak değerlere eriş ve yazdır\n   <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Metin yazdırır (stdio.h).">printf</span>("Notlar:\\n");\n   <span class="code-highlight" data-tooltip="i=0'dan 5'e kadar (ancak 5 dahil değil) döngü yap.">for (i = 0; i < 5; i++) {</span>\n     <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: 'i' indeksindeki notu yazdırır (stdio.h).">printf</span>("Not %d: %d\\n", i + 1, scores[i]);\n   }\n\n   // Bildirim sırasında bir diziyi başlat\n   <span class="code-highlight" data-tooltip="'grades' dizisini bildir ve öğelerini başlat. Boyut otomatik olarak belirlenir.">char grades[] = {'A', 'B', 'C', 'B', 'A'};</span>\n   <span class="code-highlight" data-tooltip="'sizeof' operatörü: Boyutu bayt cinsinden döndürür. sizeof(grades) / sizeof(grades[0]) öğe sayısını hesaplar.">int size_grades = sizeof(grades) / sizeof(grades[0]);</span>\n   <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Metin yazdırır (stdio.h).">printf</span>("\\nHarf Notları: ");\n   for(i=0; i<size_grades; i++) <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Bir harf notu karakteri yazdırır (stdio.h).">printf</span>("%c ", grades[i]);\n   <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Yeni satır yazdırır (stdio.h).">printf</span>("\\n");\n\n   return 0;\n}`, notes: "Dizi indeksleri her zaman 0'dan başlar. Son geçerli indeks `boyut - 1`'dir. Sınırların dışına erişmek hatalara yol açar." }, // Türkçeleştirildi
+                 do: { task: "4 boyutunda `numbers` adlı bir tamsayı dizisi bildirin. Ona 10, 20, 30, 40 değerlerini atayın. Her öğeyi yeni bir satırda yazdırmak için bir `for` döngüsü kullanın.", placeholderCode: `#include <stdio.h>\n\nint main() {\n   int numbers[4];\n   int i;\n\n   // Değerleri ata\n   numbers[0] = 10;\n   numbers[1] = 20;\n   numbers[2] = 30;\n   numbers[3] = 40;\n\n   printf("Sayılar:\\n");\n   // Öğeleri döngüye al ve yazdır\n   for (i = 0; i < 4; i++) {\n     printf("%d\\n", numbers[i] );\n   }\n\n   return 0;\n}`, expectedOutput: `Sayılar:\n10\n20\n30\n40\n` } // Türkçeleştirildi
+             },
+             { // 16. Kabarcık Sıralaması (Bubble Sort)
+                 title: "16. Dizileri Sıralama (Kabarcık Sıralaması)", // Türkçeleştirildi
+                 show: { explanation: "Kabarcık Sıralaması, listede tekrar tekrar adım atar, bitişik öğeleri karşılaştırır ve yanlış sıradaysalar yer değiştirir. Liste sıralanana kadar listeden geçiş tekrarlanır.", code: `#include &lt;stdio.h&gt;\n\n// <span class="code-highlight" data-tooltip="Fonksiyon tanımı: İşaretçiler kullanarak iki tamsayının değerlerini değiştirir. Girdi olarak bellek adreslerini alır.">void swap(int *xp, int *yp) {</span> \n    <span class="code-highlight" data-tooltip="Değeri tutmak için geçici değişken bildir.">int temp = *xp;</span> <span class="code-highlight" data-tooltip="xp'nin işaret ettiği değeri al (dereference) ve temp'te sakla.">*xp = *yp;</span> <span class="code-highlight" data-tooltip="yp'nin işaret ettiği değeri al, xp'nin işaret ettiği konuma ata.">*yp = temp;</span> <span class="code-highlight" data-tooltip="Orijinal değeri temp'ten yp'nin işaret ettiği konuma ata."></span> \n}\n\n// <span class="code-highlight" data-tooltip="Fonksiyon tanımı: 'n' boyutundaki 'arr' tamsayı dizisini kabarcık sıralaması kullanarak sıralar.">void bubbleSort(int arr[], int n) {</span> \n   int i, j;\n   <span class="code-highlight" data-tooltip="Dış döngü geçiş sayısını kontrol eder. 'i' geçişinden sonra, en büyük 'i' öğe sonda sıralanır.">for (i = 0; i < n-1; i++) {</span>       \n       // Son i öğe zaten yerinde   \n       <span class="code-highlight" data-tooltip="İç döngü, baştan zaten sıralanmış kısma kadar bitişik öğeleri karşılaştırır.">for (j = 0; j < n-i-1; j++) {</span> \n           <span class="code-highlight" data-tooltip="'j' indeksindeki öğe bir sonraki öğeden büyükse...">if (arr[j] > arr[j+1])</span> \n              <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Adreslerini geçirerek j ve j+1 indekslerindeki öğeleri değiştirir.">swap(&arr[j], &arr[j+1]);</span> \n       }\n   }\n}\n\n<span class="code-highlight" data-tooltip="Ana fonksiyonun tanımı.">int main() {</span>\n   int data[] = {64, 34, 25, 12, 22, 11, 90};\n   <span class="code-highlight" data-tooltip="'data' dizisindeki öğe sayısını sizeof operatörünü kullanarak hesapla.">int n = sizeof(data)/sizeof(data[0]);</span>\n   <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Orijinal dizi öğelerini yazdırır (stdio.h).">printf</span>("Orijinal dizi: ");\n   for(int i=0; i<n; i++) printf("%d ", data[i]); printf("\\n");\n\n   <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: 'data' dizisini bubbleSort fonksiyonunu kullanarak sıralar.">bubbleSort(data, n);</span>\n\n   <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Sıralanmış dizi öğelerini yazdırır (stdio.h).">printf</span>("Sıralanmış dizi: ");\n   for(int i=0; i<n; i++) printf("%d ", data[i]); printf("\\n");\n   return 0;\n}`, notes: "Kabarcık sıralaması bitişik öğeleri karşılaştırır ve değiştirir. Basittir ancak büyük listeler için verimsizdir. `swap` fonksiyonu işaretçiler (`*`, `&`) kullanır." }, // Türkçeleştirildi
+                 do: { task: "`int nums[] = {5, 1, 4, 2, 8};` dizisi verildiğinde, sağlanan `bubbleSort` mantığını kullanarak (fonksiyonları kopyalayabilirsiniz) artan sırada sıralayın ve sıralanmış diziyi yazdırın.", placeholderCode: `#include <stdio.h>\n\nvoid swap(int *a, int *b){int t=*a;*a=*b;*b=t;}\n\nvoid bubbleSort(int arr[], int n){\n  int i, j;\n  for(i=0; i<n-1; i++)\n    for(j=0; j<n-i-1; j++)\n      if(arr[j] > arr[j+1])\n        swap(&arr[j], &arr[j+1]);\n}\n\nint main() {\n   int nums[] = {5, 1, 4, 2, 8};\n   int size = sizeof(nums)/sizeof(nums[0]);\n\n   printf("Orijinal: ");\n   for(int i=0; i<size; i++) printf("%d ", nums[i]); printf("\\n");\n\n   // bubbleSort'u çağır\n   bubbleSort(nums, size);\n\n   printf("Sıralanmış: ");\n   // Sıralanmış diziyi yazdır\n   for(int i=0; i<size; i++) printf("%d ", nums[i]); printf("\\n");\n\n   return 0;\n}`, expectedOutput: `Orijinal: 5 1 4 2 8 \nSıralanmış: 1 2 4 5 8 \n` } // Türkçeleştirildi
+             },
+             { // 17. Rastgele Karakterleri Sırala
+                 title: "17. Rastgele Karakterleri Sıralama", // Türkçeleştirildi
+                 show: { explanation: "Rastgele küçük harf karakterleri ('a' ile 'z' arası) üretin ve bunları bir karakter dizisinde saklayın. Ardından diziyi alfabetik olarak sıralayın.", code: `#include &lt;stdio.h&gt;\n#include &lt;stdlib.h&gt;\n#include &lt;time.h&gt;\n\n// <span class="code-highlight" data-tooltip="Fonksiyon tanımı: İşaretçiler kullanarak iki karakteri değiştirir.">void charSwap(char *a, char *b){ char t=*a; *a=*b; *b=t; }</span>\n\n// <span class="code-highlight" data-tooltip="Fonksiyon tanımı: Kabarcık sıralaması kullanarak bir karakter dizisini sıralar.">void charBubbleSort(char arr[], int n){</span>\n  int i, j;\n  for(i=0; i<n-1; i++)\n    for(j=0; j<n-i-1; j++)\n      <span class="code-highlight" data-tooltip="Karakterler doğrudan karşılaştırılabilir; karşılaştırma ASCII değerlerini kullanır.">if(arr[j] > arr[j+1])</span>\n        <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Sıra dışıysa j ve j+1'deki karakterleri değiştirir.">charSwap(&arr[j], &arr[j+1]);</span>\n}\n\n<span class="code-highlight" data-tooltip="Ana fonksiyonun tanımı.">int main() {</span>\n   int n <span class="code-highlight" data-tooltip="Üretilecek karakter sayısı.">=</span> 10, i;\n   <span class="code-highlight" data-tooltip="'n' boyutunda bir karakter dizisi bildir.">char chars[n];</span>\n   <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Rastgele üreteci tohumlar (stdlib.h, time.h).">srand(time(NULL));</span>\n\n   // Rastgele karakterler üret\n   <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Metin yazdırır (stdio.h).">printf</span>("Rastgele karakterler: ");\n   for(i=0; i<n; i++) {\n     <span class="code-highlight" data-tooltip="'rand() % 26' 0-25 verir. 'a' (ASCII 97) eklemek 'a' ile 'z' arasındaki ASCII değerlerini verir.">chars[i] = 'a' + (<span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Rastgele tamsayı üretir (stdlib.h).">rand()</span> % 26);</span>\n     <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Üretilen karakteri yazdırır (stdio.h).">printf</span>("%c ", chars[i]);\n   }\n   <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Yeni satır yazdırır (stdio.h).">printf</span>("\\n");\n\n   // Karakterleri sırala\n   <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: 'chars' dizisini sıralar.">charBubbleSort(chars, n);</span>\n\n   <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Metin yazdırır (stdio.h).">printf</span>("Sıralanmış karakterler: ");\n   for(i=0; i<n; i++) <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Sıralanmış bir karakter yazdırır (stdio.h).">printf</span>("%c ", chars[i]); printf("\\n");\n   return 0;\n}`, notes: "`rand() % 26` (0-25 için) ve 'a'nın ASCII değerini ekleyerek rastgele karakterler üretin. Karakterleri sıralamak, sayıları sıralamaya benzer şekilde çalışır." }, // Türkçeleştirildi
+                 do: { task: "8 rastgele küçük harf karakterinden oluşan bir dizi oluşturun ve bunları kabarcık sıralaması kullanarak alfabetik olarak sıralayın.", placeholderCode: `#include <stdio.h>\n#include <stdlib.h>\n#include <time.h>\n\nvoid charSwap(char *a, char *b){ char t=*a; *a=*b; *b=t; }\nvoid charBubbleSort(char arr[], int n){\n  int i, j;\n  for(i=0; i<n-1; i++)\n    for(j=0; j<n-i-1; j++)\n      if(arr[j] > arr[j+1])\n        charSwap(&arr[j], &arr[j+1]);\n}\n\nint main() {\n   int size = 8, i;\n   char random_chars[size];\n   srand(time(NULL));\n\n   printf("Rastgele: ");\n   for(i=0; i<size; i++) {\n     random_chars[i] = 'a' + (rand() % 26);\n     printf("%c ", random_chars[i]);\n   }\n   printf("\\n");\n\n   // Diziyi sırala\n   charBubbleSort(random_chars, size);\n\n   printf("Sıralanmış: ");\n   for(i=0; i<size; i++) printf("%c ", random_chars[i]); printf("\\n");\n   return 0;\n}`, expectedOutput: `Rastgele: (8 rastgele karakter)\nSıralanmış: (alfabetik olarak sıralanmış 8 karakter)\n(Çıktı değişecektir)` } // Türkçeleştirildi
+             },
+            // === BPII_5'ten ===
+            { // 18. 2D Dizilere Giriş (Matrisler)
+                title: "18. 2D Diziler (Matrisler)", // Türkçeleştirildi
+                show: { explanation: "2D diziler öğeleri bir ızgarada (satırlar ve sütunlar) saklar. Öğelere iki indeks kullanarak erişin: `dizi[satir][sutun]`.", code: `#include &lt;stdio.h&gt;\n\n<span class="code-highlight" data-tooltip="Ana fonksiyonun tanımı.">int main() {</span>\n   // <span class="code-highlight" data-tooltip="3 satır ve 4 sütunlu 'matrix' adlı 2D tamsayı dizisi bildir.">int matrix[3][4];</span>\n   int i, j;\n   <span class="code-highlight" data-tooltip="Açıklık için satır ve sütun sayısını saklayan değişkenler.">int rows = 3, cols = 4;</span>\n\n   // İç içe döngüler kullanarak değer ata\n   int count = 1;\n   <span class="code-highlight" data-tooltip="Dış döngü satırlar arasında yinelenir, indeks 'i'.">for (i = 0; i < rows; i++) {</span>\n     <span class="code-highlight" data-tooltip="İç döngü sütunlar arasında yinelenir, indeks 'j'.">for (j = 0; j < cols; j++) {</span>\n       <span class="code-highlight" data-tooltip="'count'ı 'i' satırı, 'j' sütunundaki öğeye ata. Sonra count'ı artır.">matrix[i][j] = count++;</span>\n     }\n   }\n\n   // Matrisi yazdır\n   <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Metin yazdırır (stdio.h).">printf</span>("Matris:\\n");\n   for (i = 0; i < rows; i++) {\n     for (j = 0; j < cols; j++) {\n       <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Matris öğesini biçimlendirmeyle yazdırır (stdio.h). '%3d' sayıları hizalar.">printf</span>("%3d ", matrix[i][j]);\n     }\n     <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Her satırdan sonra yeni satır yazdırır (stdio.h).">printf</span>("\\n");\n   }\n   return 0;\n}`, notes: "Bir 2D dizinin satırları ve sütunları arasında yinelemek için iç içe döngüler kullanın. `matrix[i][j]` `i` satırı, `j` sütunundaki öğeye erişir." }, // Türkçeleştirildi
+                do: { task: "2x3 boyutunda bir tamsayı matrisi bildirin. 10'dan başlayarak ardışık sayılarla doldurun. Matrisi yazdırın.", placeholderCode: `#include <stdio.h>\n\nint main() {\n   int mat[2][3];\n   int r, c;\n   int start_val = 10;\n\n   // Matrisi doldur\n   for (r = 0; r < 2; r++) {\n     for (c = 0; c < 3; c++) {\n       mat[r][c] = start_val++;\n     }\n   }\n\n   // Matrisi yazdır\n   printf("Matris 2x3:\\n");\n   for (r = 0; r < 2; r++) {\n     for (c = 0; c < 3; c++) {\n       printf("%3d ", mat[r][c]);\n     }\n     printf("\\n");\n   }\n   return 0;\n}`, expectedOutput: `Matris 2x3:\n 10  11  12 \n 13  14  15 \n` } // Türkçeleştirildi
+            },
+            { // 19. Temel Matris Menüsü (Basitleştirilmiş BPII_5 S1)
+                title: "19. Temel Matris Menüsü (Fonksiyonlar, 2D Diziler)", // Türkçeleştirildi
+                show: { explanation: "Kullanıcı seçimine göre (burada simüle edilmiştir) bir 2D matris oluşturmak, (rastgele) doldurmak ve görüntülemek için fonksiyonlarla bir program yapılandırın.", code: `#include &lt;stdio.h&gt;\n#include &lt;stdlib.h&gt;\n#include &lt;time.h&gt;\n\n<span class="code-highlight" data-tooltip="3 değeriyle ROWS sabitini tanımlamak için önişlemci direktifi.">#define</span> ROWS 3\n<span class="code-highlight" data-tooltip="4 değeriyle COLS sabitini tanımla.">#define</span> COLS 4\n\n// <span class="code-highlight" data-tooltip="Fonksiyon tanımı: 'mat' matrisini rastgele 0'lar veya 1'lerle doldurur.">void fillMatrix(int mat[][COLS]) {</span>\n    for (int i = 0; i < ROWS; i++) {\n        for (int j = 0; j < COLS; j++) {\n            <span class="code-highlight" data-tooltip="Rastgele 0 veya 1 ata. 'rand() % 2' 0 veya 1 verir.">mat[i][j] = <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Rastgele tamsayı üretir (stdlib.h).">rand()</span> % 2;</span>\n        }\n    }\n}\n\n// <span class="code-highlight" data-tooltip="Fonksiyon tanımı: 'mat' matrisinin içeriğini görüntüler.">void displayMatrix(int mat[][COLS]) {</span>\n    <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Başlık metnini yazdırır (stdio.h).">printf</span>("Matris (%dx%d):\\n", ROWS, COLS);\n    for (int i = 0; i < ROWS; i++) {\n        for (int j = 0; j < COLS; j++) {\n            <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Bir matris öğesini yazdırır (stdio.h).">printf</span>("%2d ", mat[i][j]);\n        }\n        <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Satırdan sonra yeni satır yazdırır (stdio.h).">printf</span>("\\n");\n    }\n}\n\n<span class="code-highlight" data-tooltip="Ana fonksiyonun tanımı.">int main() {</span>\n    <span class="code-highlight" data-tooltip="Tanımlanmış sabitleri kullanarak 2D diziyi bildir.">int matrix[ROWS][COLS];</span>\n    <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Rastgele üreteci tohumlar (stdlib.h, time.h).">srand(time(NULL));</span>\n\n    // Menü seçeneği 1'i simüle et: Doldur ve Görüntüle\n    <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Metin yazdırır (stdio.h).">printf</span>("Seçenek 1: Doldur ve Görüntüle\\n");\n    <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: 'matrix' dizisini rastgele değerlerle doldurur.">fillMatrix(matrix);</span>\n    <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: 'matrix'in içeriğini görüntüler.">displayMatrix(matrix);</span>\n\n    // Diğer menü seçenekleri diğer fonksiyonları çağırırdı...\n    return 0;\n}`, notes: "Doldurma ve görüntüleme gibi görevleri modüler hale getirmek için fonksiyonlar kullanın. 2D dizileri fonksiyonlara sütun boyutunu belirterek geçirin (`mat[][COLS]`). `#define` sembolik sabitler oluşturur." }, // Türkçeleştirildi
+                do: { task: "2x2'lik bir matris için `initMatrix` (5'lerle doldur) ve `printMatrix` fonksiyonları oluşturun. Bunları `main`'den çağırın.", placeholderCode: `#include <stdio.h>\n#define R 2\n#define C 2\n\n// Matrisi 5'lerle başlatan fonksiyon\nvoid initMatrix(int m[][C]) {\n    for(int i=0; i<R; i++) {\n        for(int j=0; j<C; j++) {\n            m[i][j] = 5;\n        }\n    }\n}\n\n// Matrisi yazdıran fonksiyon\nvoid printMatrix(int m[][C]) {\n     printf("Matris %dx%d:\\n", R, C);\n     for(int i=0; i<R; i++) {\n        for(int j=0; j<C; j++) {\n            printf("%3d ", m[i][j]);\n        }\n        printf("\\n");\n     }\n}\n\nint main() {\n    int myMat[R][C];\n    initMatrix(myMat);\n    printMatrix(myMat);\n    return 0;\n}`, expectedOutput: `Matris 2x2:\n  5   5 \n  5   5 \n` } // Türkçeleştirildi
+            },
+            { // 20. Rastgele Metin Yerleştirme (Basitleştirilmiş BPII_5 S2)
+                title: "20. Simüle Edilmiş Rastgele Metin Yerleştirme", // Türkçeleştirildi
+                show: { explanation: "Rastgele satır/sütun indeksleri hesaplayarak ve buna göre boşluk/metin yazdırarak metni bir ızgarada rastgele koordinatlara yerleştirmeyi simüle edin.", code: `#include &lt;stdio.h&gt;\n#include &lt;stdlib.h&gt;\n#include &lt;time.h&gt;\n\n<span class="code-highlight" data-tooltip="Ana fonksiyonun tanımı.">int main() {</span>\n    int max_rows <span class="code-highlight" data-tooltip="Izgara yüksekliğini tanımla.">=</span> 5, max_cols <span class="code-highlight" data-tooltip="Izgara genişliğini tanımla.">=</span> 10;\n    int target_row, target_col;\n    int r, c;\n    <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Rastgele üreteci tohumlar (stdlib.h, time.h).">srand(time(NULL));</span>\n\n    // Rastgele hedef koordinatları al\n    <span class="code-highlight" data-tooltip="0 ile max_rows-1 arasında rastgele satır indeksi.">target_row = <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Rastgele tamsayı üretir (stdlib.h).">rand()</span> % max_rows;</span>\n    <span class="code-highlight" data-tooltip="0 ile max_cols-1 arasında rastgele sütun indeksi.">target_col = <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Rastgele tamsayı üretir (stdlib.h).">rand()</span> % max_cols;</span>\n\n    <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Bilgi mesajı yazdırır (stdio.h).">printf</span>("'X' %dx%d ızgarasında (%d, %d) konumuna yerleştiriliyor (simülasyon):\\n", max_rows, max_cols, target_row, target_col);\n\n    // Izgarayı çizmeyi simüle et\n    <span class="code-highlight" data-tooltip="Satırlar için dış döngü.">for (r = 0; r < max_rows; r++) {</span>\n        <span class="code-highlight" data-tooltip="Sütunlar için iç döngü.">for (c = 0; c < max_cols; c++) {</span>\n            // Geçerli konumun hedefle eşleşip eşleşmediğini kontrol et\n            <span class="code-highlight" data-tooltip="Eşitlik kontrolü: Geçerli satır 'r' target_row'a VE geçerli sütun 'c' target_col'a eşit mi?">if (r == target_row && c == target_col) {</span>\n                <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Hedefte 'X' yazdırır (stdio.h).">printf</span>("X");\n            } else {\n                <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Başka yerlerde '.' yazdırır (stdio.h).">printf</span>("."); // Boş hücre için yer tutucu yazdır\n            }\n        }\n        <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Satırdan sonra yeni satır yazdırır (stdio.h).">printf</span>("\\n");\n    }\n    return 0;\n}`, notes: "Bu, bir ızgaraya yerleştirmeyi simüle eder. Gerçek konsol koordinat kontrolü genellikle standart olmayan kütüphaneler gerektirir." }, // Türkçeleştirildi
+                do: { task: "\"Merhaba\" metnini 4x8'lik bir ızgara içinde rastgele bir konuma yerleştirmeyi simüle edin. Boş hücreler için '.' yazdırın.", placeholderCode: `#include <stdio.h>\n#include <stdlib.h>\n#include <time.h>\n\nint main() {\n    int rows = 4, cols = 8;\n    int tr, tc; // Hedef satır/sütun\n    int r, c;\n    srand(time(NULL));\n\n    tr = rand() % rows;\n    tc = rand() % (cols - 2); // "Merhaba" için yer olduğundan emin ol (uzunluk 7 değil, 2 harf "Hi" varsayımı ile düzeltildi)\n\n    printf("'Hi' %dx%d ızgarasında (%d, %d) yakınına yerleştiriliyor:\\n", rows, cols, tr, tc);\n\n    for (r = 0; r < rows; r++) {\n        for (c = 0; c < cols; ) { // Manuel sütun artışı gerekli\n            if (r == tr && c == tc) {\n                printf("Hi"); // "Merhaba" yerine "Hi" kullanıldı\n                c += 2; // Sütunu "Hi" uzunluğu kadar artır\n            } else {\n                printf(".");\n                c++;   // Sütunu 1 artır\n            }\n        }\n        printf("\\n");\n    }\n    return 0;\n}`, expectedOutput: `'Hi' 4x8 ızgarasında (satır, sütun) yakınına yerleştiriliyor:\n(Bir rastgele noktaya 'Hi' yerleştirilmiş 4x8 '.' ızgarası)\n(Çıktı değişecektir)` } // Türkçeleştirildi (Not: Örnek koddaki "Merhaba" "Hi" olarak düzeltildi, çünkü İngilizce placeholder'da "Hi" kullanılmış.)
+            },
+            // === BPII_6'dan ===
+            { // 21. Bir Dizeyi Ters Çevirme
+                title: "21. Bir Dizeyi Ters Çevirme", // Türkçeleştirildi
+                show: { explanation: "Bir dize (kelime) okuyun ve karakterlerini ters sırada yazdırın. Dize uzunluğu için `string.h` kullanın.", code: `#include &lt;stdio.h&gt;\n<span class="code-highlight" data-tooltip="strlen() gibi dize işleme fonksiyonları için string.h'yi dahil et.">#include &lt;string.h&gt;</span>\n\n<span class="code-highlight" data-tooltip="Ana fonksiyonun tanımı.">int main() {</span>\n   <span class="code-highlight" data-tooltip="Bir karakter dizisi (string) bildir ve başlat.">char word[] = "merhaba";</span>\n   int length, i;\n\n   <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Dize uzunluğunu hesaplar ('\\0'dan önceki karakter sayısı) (string.h).">length = strlen(word);</span>\n   <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Orijinal dizeyi yazdırır (stdio.h).">printf</span>("Orijinal: %s\\n", word);\n\n   <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Etiketi yazdırır (stdio.h).">printf</span>("Ters çevrilmiş: ");\n   // <span class="code-highlight" data-tooltip="Geriye doğru döngü: son karakter indeksinden (length-1) başla, indeks >= 0 olduğu sürece devam et, indeksi azalt.">for (i = length - 1; i >= 0; i--) {</span>\n     <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Geçerli geri indeks 'i'deki karakteri yazdırır (stdio.h).">printf</span>("%c", word[i]);\n   }\n   <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Yeni satır yazdırır (stdio.h).">printf</span>("\\n");\n\n   return 0;\n}`, notes: "`string.h`, `strlen()` gibi kullanışlı dize fonksiyonları sağlar. Ters çevirmek için `length - 1`'den 0'a geriye doğru döngü yapın." }, // Türkçeleştirildi
+                do: { task: "\"dünya\" dizesini ters çeviren ve ters çevrilmiş sürümü yazdıran bir program yazın.", placeholderCode: `#include <stdio.h>\n#include <string.h>\n\nint main() {\n   char text[] = "dünya";\n   int len = strlen(text);\n   int i;\n\n   printf("Orijinal: %s\\n", text);\n   printf("Ters çevrilmiş: ");\n   // Karakterleri ters sırada yazdırmak için döngü ekleyin\n   for (i = len - 1; i >= 0; i--) {\n     printf("%c", text[i]);\n   }\n   printf("\\n");\n\n   return 0;\n}`, expectedOutput: `Orijinal: dünya\nTers çevrilmiş: aynüd\n` } // Türkçeleştirildi
+            },
+            { // 22. Bir Dizedeki Sesli Harfleri Listeleme
+                title: "22. Bir Dizedeki Sesli Harfleri Bulma", // Türkçeleştirildi
+                show: { explanation: "Bir dize boyunca ilerleyin ve her karakterin sesli harf olup olmadığını kontrol edin (a, e, ı, i, o, ö, u, ü - büyük/küçük harf duyarsız).", code: `#include &lt;stdio.h&gt;\n<span class="code-highlight" data-tooltip="tolower() için ctype.h'yi dahil et.">#include &lt;ctype.h&gt;</span>\n// Türkçe karakterler için locale.h gerekebilir, ancak basitlik için burada atlanmıştır.\n\n<span class="code-highlight" data-tooltip="Ana fonksiyonun tanımı.">int main() {</span>\n   // Türkçe karakterler içeren örnek\n   char sentence[] <span class="code-highlight" data-tooltip="Dize sabiti başlatma.">=</span> "Programlama Eğlencelidir"; \n   int i;\n   char ch;\n\n   <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Orijinal dizeyi yazdırır (stdio.h).">printf</span>("Dize: %s\\n", sentence);\n   <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Etiketi yazdırır (stdio.h).">printf</span>("Bulunan sesli harfler: ");\n\n   <span class="code-highlight" data-tooltip="Döngü karakter null sonlandırıcı olmadığı sürece devam eder.">for (i = 0; sentence[i] != '\\0'; i++) {</span>\n     // Karakteri küçük harfe çevir (Türkçe karakterler için tolower tam çalışmayabilir, basit kontrol yapılır)\n     ch = tolower((unsigned char)sentence[i]); // Güvenlik için unsigned char'a cast\n\n     // Küçük harf karakterinin sesli harf olup olmadığını kontrol et (Türkçe sesliler eklendi)\n     <span class="code-highlight" data-tooltip="Mantıksal VEYA (||): 'ch'nin sesli harflerden herhangi biriyle eşleşip eşleşmediğini kontrol eder.">if (ch == 'a' || ch == 'e' || ch == 'ı' || ch == 'i' || ch == 'o' || ch == 'ö' || ch == 'u' || ch == 'ü') {</span>\n       <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Orijinal büyük/küçük harf sesli karakterini yazdırır (stdio.h).">printf</span>("%c ", sentence[i]);\n     }\n   }\n   <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Yeni satır yazdırır (stdio.h).">printf</span>("\\n");\n\n   return 0;\n}`, notes: "Sesli harf kontrolünü basitleştirmek için karakterleri `tolower()` (`ctype.h`'den) kullanarak küçük harfe dönüştürün (Türkçe karakterler için sınırlı olabilir). Birden çok sesli harfe karşı kontrol etmek için `||` (VEYA) kullanın. Türkçe sesliler eklendi." }, // Türkçeleştirildi
+                do: { task: "\"Örnek Bir Dize\" dizesindeki tüm sesli harfleri (büyük/küçük harf duyarsız) bulan ve yazdıran bir program yazın.", placeholderCode: `#include <stdio.h>\n#include <ctype.h>\n// Türkçe karakterler için locale.h ve setlocale gerekebilir.\n\nint main() {\n   char str[] = "Örnek Bir Dize";\n   int i;\n   char current_char_lower;\n\n   printf("Orijinal: %s\\n", str);\n   printf("Sesli Harfler: ");\n\n   for (i = 0; str[i] != '\\0'; i++) {\n     current_char_lower = tolower((unsigned char)str[i]);\n     // Sesli harfleri kontrol etmek için if koşulunu ekleyin (Türkçe dahil)\n     if (current_char_lower == 'a' || current_char_lower == 'e' || current_char_lower == 'ı' || current_char_lower == 'i' || current_char_lower == 'o' || current_char_lower == 'ö' || current_char_lower == 'u' || current_char_lower == 'ü') {\n       printf("%c ", str[i]);\n     }\n   }\n   printf("\\n");\n\n   return 0;\n}`, expectedOutput: `Orijinal: Örnek Bir Dize\nSesli Harfler: Ö e i i e \n` } // Türkçeleştirildi
+            },
+            { // 23. Palindrom Kelime Kontrolü
+                title: "23. Palindrom Kelime Kontrolü", // Türkçeleştirildi
+                show: { explanation: "Bir kelimenin ileri ve geri aynı şekilde okunup okunmadığını kontrol edin (ör. seviye, madam). Baştan ve sondan karakterleri karşılaştırarak içe doğru hareket edin.", code: `#include &lt;stdio.h&gt;\n#include &lt;string.h&gt;\n#include &lt;ctype.h&gt;\n\n<span class="code-highlight" data-tooltip="Ana fonksiyonun tanımı.">int main() {</span>\n    char word[] <span class="code-highlight" data-tooltip="Kontrol edilecek kelime.">=</span> "Kayak";\n    <span class="code-highlight" data-tooltip="En soldaki karakter için indeks.">int left = 0;</span>\n    <span class="code-highlight" data-tooltip="En sağdaki karakter için indeks (uzunluk - 1).">int right = <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Dize uzunluğunu alır (string.h).">strlen(word)</span> - 1;</span>\n    <span class="code-highlight" data-tooltip="Bayrak değişkeni: Aksi kanıtlanana kadar palindrom olduğunu varsay (1=doğru) (0=yanlış).">int is_palindrome = 1;</span>\n\n    <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Kontrol edilen kelimeyi yazdırır (stdio.h).">printf</span>("Kontrol edilen kelime: %s\\n", word);\n\n    // <span class="code-highlight" data-tooltip="Döngü sol indeks sağ indeksi geçmediği sürece devam eder.">while (left < right) {</span>\n        // İsteğe bağlı: Büyük/küçük harf yoksay\n        <span class="code-highlight" data-tooltip="Dıştaki indekslerdeki karakterleri tolower() (ctype.h) kullanarak her ikisini de küçük harfe dönüştürdükten sonra karşılaştır.">if (<span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Karakteri küçük harfe dönüştürür (ctype.h).">tolower((unsigned char)word[left])</span> != <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Karakteri küçük harfe dönüştürür (ctype.h).">tolower((unsigned char)word[right])</span>) {</span> // Güvenlik için cast\n            <span class="code-highlight" data-tooltip="Karakterler eşleşmezse, bayrağı false olarak ayarla.">is_palindrome = 0;</span>\n            <span class="code-highlight" data-tooltip="Döngüden hemen çık, daha fazla kontrol etmeye gerek yok.">break;</span>\n        }\n        <span class="code-highlight" data-tooltip="Sol indeksi bir adım sağa taşı.">left++;</span>\n        <span class="code-highlight" data-tooltip="Sağ indeksi bir adım sola taşı.">right--;</span>\n    }\n\n    <span class="code-highlight" data-tooltip="Bayrağın son değerini kontrol et.">if (is_palindrome) {</span>\n        <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Sonucu yazdırır (stdio.h).">printf</span>("Sonuç: Palindromdur.\\n");\n    } else {\n        <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Sonucu yazdırır (stdio.h).">printf</span>("Sonuç: Palindrom değildir.\\n");\n    }\n    return 0;\n}`, notes: "Biri başta (`left`) ve biri sonda (`right`) başlayan iki indeks değişkeni kullanın. `word[left]` ve `word[right]`'ı karşılaştırın. Eşleşmezlerse, palindrom değildir. `left`'i artırın ve `right`'ı azaltın, buluşana veya geçene kadar." }, // Türkçeleştirildi
+                do: { task: "\"Efe\" kelimesinin palindrom olup olmadığını kontrol edin (büyük/küçük harf duyarsız). Sonucu yazdırın.", placeholderCode: `#include <stdio.h>\n#include <string.h>\n#include <ctype.h>\n\nint main() {\n    char w[] = "Efe";\n    int l = 0;\n    int r = strlen(w) - 1;\n    int palindrome = 1;\n\n    printf("Kelime: %s\\n", w);\n\n    while (l < r) {\n        // Karakterleri karşılaştır (büyük/küçük harf duyarsız için tolower kullan)\n        if (tolower((unsigned char)w[l]) != tolower((unsigned char)w[r])) {\n            palindrome = 0;\n            break;\n        }\n        l++;\n        r--;\n    }\n\n    if (palindrome) printf("Sonuç: Palindrom\\n");\n    else printf("Sonuç: Palindrom Değil\\n");\n\n    return 0;\n}`, expectedOutput: `Kelime: Efe\nSonuç: Palindrom\n` } // Türkçeleştirildi
+            },
+            { // 24. Fonksiyonlarla Yapılandırma (Basitleştirilmiş BPII_6 S4)
+                title: "24. Kodu Fonksiyonlarla Yapılandırma", // Türkçeleştirildi
+                show: { explanation: "Daha büyük bir görevi daha küçük, yönetilebilir fonksiyonlara ayırın. Örnek: Basit bir sayı tahmin yardımcısı.", code: `#include &lt;stdio.h&gt;\n\n// <span class="code-highlight" data-tooltip="Fonksiyon tanımı: 'guess'ın 'secret' ile eşleşip eşleşmediğini kontrol eder ve geri bildirim yazdırır. void (hiçbir şey) döndürür.">void checkGuess(int secret, int guess) {</span>\n    <span class="code-highlight" data-tooltip="Eşitlik kontrolü.">if (guess == secret) {</span>\n        <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Mesaj yazdırır (stdio.h).">printf</span>("Doğru!\\n");\n    } <span class="code-highlight" data-tooltip="Küçüktür kontrolü.">else if (guess < secret) {</span>\n        <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Mesaj yazdırır (stdio.h).">printf</span>("Çok düşük.\\n");\n    } <span class="code-highlight" data-tooltip="Eşit veya küçük değilse, büyük olmalı.">else {</span>\n        <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Mesaj yazdırır (stdio.h).">printf</span>("Çok yüksek.\\n");\n    }\n}\n\n// <span class="code-highlight" data-tooltip="Fonksiyon tanımı: Kullanıcıya sorar, bir tamsayı tahmini okur ve onu döndürür.">int getUserGuess() {</span>\n    int user_input;\n    <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: İstek yazdırır (stdio.h).">printf</span>("Tahmininizi girin: ");\n    <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Girdiden bir tamsayı okur ve onu 'user_input'ın bellek adresinde saklar (stdio.h). stdio.h gerektirir.">scanf("%d", &user_input);</span> // Not: Temel scanf, geçerli girdi varsayar\n    <span class="code-highlight" data-tooltip="Kullanıcıdan okunan tamsayı değerini döndür.">return user_input;</span>\n}\n\n<span class="code-highlight" data-tooltip="Ana fonksiyonun tanımı.">int main() {</span>\n    int secret_number <span class="code-highlight" data-tooltip="Kullanıcının tahmin etmesi gereken sayı.">=</span> 42;\n    int player_guess;\n\n    <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: Tanıtım mesajı yazdırır (stdio.h).">printf</span>("Sayıyı tahmin et!\\n");\n    <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: getUserGuess() fonksiyonunu yürütür ve döndürülen değeri player_guess'te saklar.">player_guess = getUserGuess();</span>\n    <span class="code-highlight" data-tooltip="Fonksiyon çağrısı: checkGuess() fonksiyonunu yürütür, gizli sayıyı ve oyuncunun tahminini argüman olarak geçirir.">checkGuess(secret_number, player_guess);</span>\n\n    // Gerçek bir oyun doğru olana kadar döngü yapardı\n\n    return 0;\n}`, notes: "`checkGuess` ve `getUserGuess` gibi fonksiyonlar `main`'i daha temiz ve anlaşılır hale getirir. Her fonksiyonun tek bir sorumluluğu vardır." }, // Türkçeleştirildi
+                do: { task: "İki fonksiyon oluşturun: \"Hoş geldiniz!\" yazdıran `printWelcomeMessage()` ve \"Hoşça kalın!\" yazdıran `printGoodbyeMessage()`. Her iki fonksiyonu da `main`'den çağırın.", placeholderCode: `#include <stdio.h>\n\n// printWelcomeMessage fonksiyonunu tanımla\nvoid printWelcomeMessage() {\n   printf("Hoş geldiniz!\\n");\n}\n\n// printGoodbyeMessage fonksiyonunu tanımla\nvoid printGoodbyeMessage() {\n   printf("Hoşça kalın!\\n");\n}\n\nint main() {\n   // Hoş geldiniz fonksiyonunu çağır\n   printWelcomeMessage();\n\n   // ... belki başka kod ...\n\n   // Hoşça kalın fonksiyonunu çağır\n   printGoodbyeMessage();\n\n   return 0;\n}`, expectedOutput: `Hoş geldiniz!\nHoşça kalın!\n` } // Türkçeleştirildi
+            }
+
+        ];
+
+        // --- Uygulama Durumu ---
+        let selectedLessonIndex = -1; // -1, ders listesinin gösterildiği anlamına gelir
+        let currentStage = 'show'; // 'show' (göster) veya 'do' (yap)
+
+        // --- DOM Öğeleri ---
+        const appContainer = document.getElementById('app-container');
+        const lessonTitleEl = document.getElementById('lesson-title');
+        const lessonListEl = document.getElementById('lesson-list');
+        const lessonStageEl = document.getElementById('lesson-stage');
+        const prevButton = document.getElementById('prev-button');
+        const nextButton = document.getElementById('next-button');
+        const progressIndicatorEl = document.getElementById('progress-indicator');
+        const tooltipEl = document.getElementById('tooltip');
+        const contentArea = document.getElementById('content-area');
+        const backButton = document.getElementById('back-to-list-button');
+
+        // --- Fonksiyonlar ---
+
+        // Mevcut derslerin listesini görüntüle
+        function displayLessonList() {
+            selectedLessonIndex = -1; // Seçili dersi sıfırla
+            appContainer.classList.add('show-list'); // Görünürlüğü kontrol etmek için sınıf ekle
+            lessonListEl.style.display = 'grid'; // Listeyi göster
+            lessonStageEl.style.display = 'none'; // Aşamayı gizle
+            lessonTitleEl.textContent = "Bir Ders Seçin"; // Başlığı güncelle (Türkçeleştirildi)
+            progressIndicatorEl.textContent = ""; // İlerlemeyi temizle
+
+            lessonListEl.innerHTML = ''; // Önceki liste öğelerini temizle
+            lessons.forEach((lesson, index) => {
+                const item = document.createElement('div');
+                item.className = 'lesson-item';
+                const button = document.createElement('button');
+                button.className = 'button'; // Stil tutarlılığı için düğme sınıfını kullan
+                button.textContent = lesson.title; // Başlık Türkçeleştirildi
+                button.onclick = () => loadLesson(index); // Tıklama işleyicisini ayarla
+                item.appendChild(button);
+                lessonListEl.appendChild(item);
+            });
+             contentArea.scrollTop = 0; // Listeyi en üste kaydır
+        }
+
+        // Belirli bir dersi yükle
+        function loadLesson(index) {
+            if (index < 0 || index >= lessons.length) return; // Geçersiz indeks
+
+            selectedLessonIndex = index;
+            currentStage = 'show'; // 'show' aşamasıyla başla
+            appContainer.classList.remove('show-list'); // Liste görünümü stillerini gizle
+            lessonListEl.style.display = 'none'; // Listeyi gizle
+            lessonStageEl.style.display = 'block'; // Aşamayı göster
+            backButton.style.display = 'inline-flex'; // Geri düğmesini göster
+
+            renderLessonStage(); // 'show' aşamasını oluştur
+        }
+
+        // Seçili dersin geçerli aşamasını (Göster veya Yap) oluştur
+        function renderLessonStage() {
+            if (selectedLessonIndex < 0) return; // Ders seçilmedi
+
+            contentArea.scrollTop = 0; // Yeni içerikte en üste kaydır
+            const lesson = lessons[selectedLessonIndex];
+            lessonTitleEl.textContent = lesson.title; // Başlık başlığını güncelle (Türkçeleştirildi)
+
+            if (currentStage === 'show') {
+                lessonStageEl.innerHTML = `
+                    <p class="mb-4 text-gray-700">${lesson.show.explanation}</p> <pre><code id="code-block">${lesson.show.code}</code></pre>
+                    ${lesson.show.notes ? `<p class="mt-4 text-sm text-gray-600 bg-blue-50 p-3 rounded-md border border-blue-200"><strong>Notlar:</strong> ${lesson.show.notes}</p>` : ''} `;
+                // DOM güncellendikten sonra ipuçlarını ayarlamak için requestAnimationFrame kullan
+                requestAnimationFrame(setupTooltips);
+            } else { // 'do' aşaması
+                lessonStageEl.innerHTML = `
+                    <p class="mb-4 text-gray-700">${lesson.do.task}</p> <textarea id="user-code" class="task-input" placeholder="// C kodunuzu buraya yazın..." spellcheck="false">${lesson.do.placeholderCode || ''}</textarea> <div class="flex justify-start items-center gap-4 mb-4">
+                        <button id="run-button" class="button button-success">Kodu Çalıştır (Simüle)</button> <span class="text-xs text-gray-500">Not: Bu, kodun çalıştırılmasını simüle eder. Gerçek bir C derleyicisi kullanılmaz.</span> </div>
+                    <label for="output-area" class="block text-sm font-medium text-gray-700 mb-1">Çıktı:</label> <div id="output-area" aria-live="polite"></div>
+                `;
+                // Yeni Çalıştır düğmesi için olay dinleyicisi ekle
+                const runButton = document.getElementById('run-button');
+                 if (runButton) {
+                     runButton.addEventListener('click', simulateRunCode);
+                 }
+            }
+            updateNavigation();
+        }
+
+
+        function simulateRunCode() {
+            const outputArea = document.getElementById('output-area');
+            const runButton = document.getElementById('run-button');
+            // Erişmeden önce dersin mevcut olduğundan emin ol
+            if (selectedLessonIndex < 0 || selectedLessonIndex >= lessons.length) return;
+            const lesson = lessons[selectedLessonIndex];
+            // Beklenen çıktıyı al veya varsayılan bir mesaj kullan (Türkçeleştirildi)
+            const expectedOutput = lesson.do.expectedOutput || "Simülasyon tamamlandı. (Bu görev için belirli bir çıktı tanımlanmadı)";
+
+            if (!outputArea || !runButton) return; // Öğeler bulunamadı
+
+            runButton.disabled = true;
+            outputArea.className = 'running';
+            outputArea.textContent = 'Simülasyon çalıştırılıyor...'; // Türkçeleştirildi
+
+            setTimeout(() => {
+                const currentOutputArea = document.getElementById('output-area');
+                const currentRunButton = document.getElementById('run-button');
+                if(currentOutputArea) {
+                    currentOutputArea.textContent = expectedOutput; // Beklenen çıktıyı göster
+                    currentOutputArea.className = 'success';
+                }
+                 if(currentRunButton) {
+                     currentRunButton.disabled = false;
+                 }
+            }, 1200);
+        }
+
+
+        function updateNavigation() {
+             if (selectedLessonIndex < 0) return; // Ders seçilmedi, gezinme gizli
+
+             const lesson = lessons[selectedLessonIndex];
+             // İlerleme göstergesini güncelle (Türkçeleştirildi)
+             progressIndicatorEl.textContent = `Aşama: ${currentStage === 'show' ? 'Göster' : 'Yap'}`;
+
+             // Ders içindeki geçerli aşamaya göre Önceki/Sonraki'yi etkinleştir/devre dışı bırak
+             prevButton.disabled = currentStage === 'show';
+             nextButton.disabled = currentStage === 'do';
+        }
+
+        function goToNextStage() {
+             if (selectedLessonIndex < 0 || currentStage === 'do') return; // 'do' aşamasından ileri gidilemez
+
+             currentStage = 'do';
+             renderLessonStage();
+        }
+
+        function goToPrevStage() {
+             if (selectedLessonIndex < 0 || currentStage === 'show') return; // 'show' aşamasından geri gidilemez
+
+             currentStage = 'show';
+             renderLessonStage();
+        }
+
+
+        // --- İpucu Mantığı ---
+        let tooltipListeners = [];
+        function removeTooltipListeners() {
+            tooltipListeners.forEach(({ element, type, listener }) => element.removeEventListener(type, listener));
+            tooltipListeners = [];
+        }
+        function setupTooltips() {
+            removeTooltipListeners();
+            const highlights = lessonStageEl.querySelectorAll('.code-highlight');
+            highlights.forEach(span => {
+                const mouseoverListener = (event) => showTooltip(event, span.dataset.tooltip); // Tooltip metni zaten Türkçeleştirildi
+                const mousemoveListener = moveTooltip;
+                const mouseoutListener = hideTooltip;
+                span.addEventListener('mouseover', mouseoverListener);
+                span.addEventListener('mousemove', mousemoveListener);
+                span.addEventListener('mouseout', mouseoutListener);
+                tooltipListeners.push({ element: span, type: 'mouseover', listener: mouseoverListener });
+                tooltipListeners.push({ element: span, type: 'mousemove', listener: mousemoveListener });
+                tooltipListeners.push({ element: span, type: 'mouseout', listener: mouseoutListener });
+            });
+        }
+        function showTooltip(event, text) {
+            tooltipEl.textContent = text; // Tooltip metni zaten Türkçeleştirildi
+            tooltipEl.classList.add('visible');
+            moveTooltip(event);
+        }
+        function moveTooltip(event) {
+            const offsetX = 15, offsetY = 10;
+            let x = event.clientX + offsetX, y = event.clientY + offsetY;
+            const vw = window.innerWidth, vh = window.innerHeight;
+            const tw = tooltipEl.offsetWidth, th = tooltipEl.offsetHeight;
+            if (x + tw > vw) x = event.clientX - tw - offsetX;
+            if (y + th > vh) y = event.clientY - th - offsetY;
+            if (x < 0) x = offsetX; if (y < 0) y = offsetY;
+            tooltipEl.style.left = `${x}px`; tooltipEl.style.top = `${y}px`;
+        }
+        function hideTooltip() { tooltipEl.classList.remove('visible'); }
+
+        // --- Olay Dinleyicileri ---
+        nextButton.addEventListener('click', goToNextStage);
+        prevButton.addEventListener('click', goToPrevStage);
+        backButton.addEventListener('click', displayLessonList); // Listeye geri dön
+
+        // --- Başlangıç Yüklemesi ---
+        displayLessonList(); // Başlangıçta ders listesini göster
+
+    </script>
+</body>
+</html>
